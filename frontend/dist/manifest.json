@@ -1,0 +1,16 @@
+{
+  "name": "UDAAN — Understanding-Driven Adaptive Academic Navigator",
+  "short_name": "UDAAN",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#07080A",
+  "theme_color": "#00f2fe",
+  "description": "AI-Powered Adaptive Academic Navigator for NCERT Mathematics with offline sync and AI Mistake Detective.",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}

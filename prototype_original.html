@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>UDAAN – Adaptive Academic Navigator</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+:root{--bg:#f4f6ff;--card:#fff;--tx:#1b1f3b;--mu:#5b6086;--pr:#5b4bff;--ac:#00b8a9;--wn:#ff8a3d;--er:#e5384f;--ok:#1aa05b;--bd:#dfe3f7;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0f1226;--card:#1a1e3a;--tx:#eef0ff;--mu:#a3a8d4;--bd:#2d3263}}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}body{margin:0;font:16px/1.55 system-ui,'Noto Sans Telugu',sans-serif;background:var(--bg);color:var(--tx);background-image:radial-gradient(circle at 15% 0,#5b4bff30,transparent 40%),radial-gradient(circle at 90% 20%,#00b8a933,transparent 40%);background-attachment:fixed}
+header{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;padding:12px 18px;position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg) 85%,transparent);backdrop-filter:blur(10px)}
+.logo{font-weight:800;font-size:1.3rem;background:linear-gradient(90deg,var(--pr),var(--ac));-webkit-background-clip:text;color:transparent}
+nav{display:flex;gap:6px;flex-wrap:wrap}
+button,select,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border:1px solid var(--bd);background:var(--card);border-radius:10px;padding:8px 14px;transition:.2s}
+button:hover{transform:translateY(-2px);box-shadow:0 6px 16px #5b4bff33}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--pr);outline-offset:2px}
+button.on,button.pri{background:linear-gradient(135deg,var(--pr),#8a4bff);color:#fff;border-color:transparent}
+main{max-width:1050px;margin:auto;padding:14px 18px 60px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:18px;padding:18px;margin:12px 0;animation:rise .5s both;transform-style:preserve-3d;transition:transform .15s}
+@keyframes rise{from{opacity:0;transform:translateY(20px) rotateX(8deg)}}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.hero{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));align-items:center;gap:20px;min-height:260px;perspective:900px}
+h1{font-size:clamp(1.8rem,5vw,2.8rem);margin:.2em 0;line-height:1.15}h2{margin:.2em 0}
+.stage{height:220px;display:grid;place-items:center;perspective:700px;position:relative}
+.cube{width:110px;height:110px;position:relative;transform-style:preserve-3d;animation:spin 14s linear infinite}
+.cube div{position:absolute;inset:0;display:grid;place-items:center;font-size:1.6rem;font-weight:800;color:#fff;border:2px solid #fff6;background:linear-gradient(135deg,#5b4bffcc,#00b8a9cc);backdrop-filter:blur(2px)}
+.cube div:nth-child(1){transform:translateZ(55px)}.cube div:nth-child(2){transform:rotateY(90deg) translateZ(55px)}.cube div:nth-child(3){transform:rotateY(180deg) translateZ(55px)}.cube div:nth-child(4){transform:rotateY(-90deg) translateZ(55px)}.cube div:nth-child(5){transform:rotateX(90deg) translateZ(55px)}.cube div:nth-child(6){transform:rotateX(-90deg) translateZ(55px)}
+@keyframes spin{to{transform:rotateX(360deg) rotateY(360deg)}}
+.orb{position:absolute;border-radius:50%;background:radial-gradient(circle at 30% 30%,#fff9,var(--pr));animation:flt 5s ease-in-out infinite}
+@keyframes flt{50%{transform:translateY(-24px) translateZ(40px)}}
+.bar{height:12px;border-radius:8px;background:var(--bd);overflow:hidden}.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--pr),var(--ac));transition:width 1s}
+.tag{display:inline-block;padding:2px 10px;border-radius:99px;font-size:.8rem;background:#5b4bff22;color:var(--pr);margin:2px}
+.warn{background:#ff8a3d22;color:var(--wn)}.good{background:#1aa05b22;color:var(--ok)}
+.opt{display:block;width:100%;text-align:left;margin:6px 0}
+.opt.right{border-color:var(--ok);background:#1aa05b22}.opt.wrong{border-color:var(--er);background:#e5384f22;animation:shake .4s}
+@keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.mu{color:var(--mu);font-size:.9rem}.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+input,textarea,select{padding:8px;border-radius:8px;border:1px solid var(--bd);background:var(--bg);width:100%}
+input[type=range]{padding:0}
+.pop{animation:pop .5s}@keyframes pop{from{transform:scale(.7);opacity:0}}
+.conf{position:fixed;inset:0;pointer-events:none;z-index:9}.conf b{position:absolute;top:-10px;width:10px;height:14px;animation:fall 2s linear forwards}
+@keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
+.modal{position:fixed;inset:0;background:#000a;display:grid;place-items:center;z-index:20;padding:16px}
+table{width:100%;border-collapse:collapse}td,th{padding:6px;border-bottom:1px solid var(--bd);text-align:left;font-size:.92rem}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style></head><body>
+<header><span class="logo">✈ UDAAN</span><nav id="nav" role="tablist"></nav>
+<div class="row"><button id="net" aria-live="polite"></button><button id="lng">తెలుగు</button></div></header>
+<main id="app"></main>
+<script>
+const T={en:{student:'Student',detective:'Learning Detective',teacher:'Teacher',content:'Content',compare:'Compare',about:'About',tag:'Understanding-Driven Adaptive Academic Navigator',sub:'Finds the likely reason behind a wrong answer, supports you, and helps teachers act.',online:'● Online',offline:'○ Offline (queued)',mastery:'Concept mastery',start:'Start detective demo',next:'Next',sync:'Sync queue'},
+te:{student:'విద్యార్థి',detective:'లెర్నింగ్ డిటెక్టివ్',teacher:'ఉపాధ్యాయుడు',content:'కంటెంట్',compare:'పోలిక',about:'గురించి',tag:'అవగాహన ఆధారిత అనుకూల విద్యా నావిగేటర్',sub:'తప్పు సమాధానం వెనుక కారణాన్ని కనుగొని, సహాయం చేసి, ఉపాధ్యాయులకు మార్గం చూపుతుంది.',online:'● ఆన్‌లైన్',offline:'○ ఆఫ్‌లైన్ (క్యూలో)',mastery:'భావన నైపుణ్యం',start:'డిటెక్టివ్ డెమో ప్రారంభించు',next:'తదుపరి',sync:'సింక్ క్యూ'}};
+const S={lang:'en',tab:'student',online:true,cfg:{up:2,down:2,help:3,thr:30},
+ concepts:[['Integers','పూర్ణాంకాలు'],['Fractions & equivalents','భిన్నాలు'],['LCM & HCF','క.సా.గు'],['Rational meaning','అకరణీయ సంఖ్యలు'],['Comparing rationals','పోల్చడం'],['Adding rationals','కూడిక'],['Multiply/Divide','గుణకారం']],
+ m:{0:.8,1:.5,2:.4,3:.6,4:.3,5:.25,6:.1},hist:[],bkt:{p:.3,hist:[]},rule:{cc:0,cw:0,lvl:1},queue:[],server:new Set(),det:null,
+ cards:[{id:1,sample:1,c:'Adding rationals',obs:'38% of 40 sample students chose “added numerators and denominators separately”; follow-ups supported it.',rule:'Same misconception share ≥ teacher threshold',act:'Revisit equivalent fractions on a number line; assign short practice.',st:'pending'}],
+ qs:[{id:'Q1',en:'(-3/4) + (1/2) = ?',te:'(-3/4) + (1/2) = ?',o:[['-1/4',null],['-1/3','Added numerators and denominators separately: (−3+1)/(4+2)'],['5/4','Ignored the negative sign while converting'],['1/4','Sign error in final answer (may be a slip)']],a:0,st:'published',v:[['v1','Seeded from proposal – reviewed']]},
+ {id:'Q2',en:'(-1/2) + (1/4) = ?',te:'(-1/2) + (1/4) = ?',o:[['-1/4',null],['-2/6','Added numerators and denominators separately'],['3/4','Ignored negative sign'],['1/4','Sign error']],a:0,st:'reviewed',v:[['v1','Draft']]}],
+ pool:[[1,'1/2 + 1/4 = ?',['3/4','2/6','1/8'],0],[2,'(-1/2)+(1/4)=?',['-1/4','-2/6','3/4'],0],[3,'(-5/6)+(1/3)=?',['-1/2','-4/9','-7/6'],0]],pi:0,time:null};
+const t=k=>T[S.lang][k]||k,$=s=>document.querySelector(s);
+/* IndexedDB (falls back to memory) */
+let db=null;try{const r=indexedDB.open('udaan',1);r.onupgradeneeded=()=>r.result.createObjectStore('q',{keyPath:'id'});r.onsuccess=()=>{db=r.result;loadQ()};}catch(e){}
+function loadQ(){try{db.transaction('q').objectStore('q').getAll().onsuccess=e=>{S.queue=e.target.result;render()}}catch(e){}}
+function saveQ(a){S.queue.push(a);try{db&&db.transaction('q','readwrite').objectStore('q').put(a)}catch(e){}}
+function delQ(id){try{db&&db.transaction('q','readwrite').objectStore('q').delete(id)}catch(e){}}
+function sync(){if(!S.online)return;S.queue=S.queue.filter(a=>{if(!S.server.has(a.id))S.server.add(a.id);delQ(a.id);return false});}
+/* BKT-inspired */
+const P={p0:.3,T:.15,s:.1,g:.25};
+function bkt(p,ok){const post=ok?p*(1-P.s)/(p*(1-P.s)+(1-p)*P.g):p*P.s/(p*P.s+(1-p)*(1-P.g));return post+(1-post)*P.T}
+function record(ok,hint,tag){const id=crypto.randomUUID?crypto.randomUUID():String(Math.random());saveQ({id,ok,hint,tag,ts:Date.now()});sync();
+ const b=S.bkt,old=b.p;b.p=bkt(old,ok);b.hist.push(`${ok?'✓':'✗'} ${(old*100).toFixed(0)}% → ${(b.p*100).toFixed(0)}% (${ok?'correct raises':'wrong lowers'}, then learning step +${P.T})`);
+ const r=S.rule;if(ok){r.cc++;r.cw=0}else{r.cw++;r.cc=0}
+ let path,why;const c=S.cfg;
+ if(r.cw>=c.help){path='Request teacher help';why=`${r.cw} wrong in a row ≥ ${c.help}`}
+ else if(r.cw>=c.down||hint>1){path='Revisit prerequisite';why=`wrong streak ${r.cw} ≥ ${c.down} or heavy hints`;r.lvl=Math.max(1,r.lvl-1)}
+ else if(r.cc>=c.up){path='Harder questions';why=`${r.cc} correct in a row ≥ ${c.up}`;r.lvl=Math.min(3,r.lvl+1)}
+ else{path='Focused practice';why='not enough evidence to move yet'}
+ S.m[5]=b.p;S.path=[path,why];S.hist.unshift(`${new Date().toLocaleTimeString()} ${ok?'correct':'wrong'} → ${path}`);}
+function band(p){return p<.1?'Not started':p<.5?'Building':p<.85?'Secure':'Ready for challenge'}
+/* Detective */
+function detStart(){S.det={st:'q',q:S.qs[0]};render()}
+function detPick(i){const d=S.det,q=d.q,ok=i==q.a;d.pick=i;d.tag=q.o[i][1];record(ok,0,d.tag);
+ if(ok){d.st='done';d.msg='Correct! Mastery updated.';burst()}else d.st='follow';render()}
+function detFollow(v){const d=S.det,ok=v=='1';record(ok,0,'follow-up');
+ if(ok){d.st='retry';d.evid='Low – follow-up correct, so first answer may be a slip.'}else{d.st='support';d.evid='Medium–High – follow-up (2/4) supports “added numerators/denominators separately”.'}render()}
+function detRe(v){const d=S.det;const ok=v=='-1/2';record(ok,d.hints||0,'reassess');
+ if(ok){d.st='done';d.msg='Recovered! Fresh reassessment correct – case closed.';burst()}
+ else{d.st='persist';S.cards.unshift({id:Date.now(),c:'Adding rationals with unlike denominators',obs:'Learner (demo) chose “'+(d.tag||'')+'”, failed follow-up and fresh reassessment.',rule:'Reassessment failed after targeted support',act:'Prerequisite “Equivalent fractions & LCM” revisit; teacher check-in.',st:'pending'})}render()}
+function burst(){const c=document.createElement('div');c.className='conf';for(let i=0;i<50;i++){const b=document.createElement('b');b.style.cssText=`left:${Math.random()*100}%;background:hsl(${Math.random()*360},80%,60%);animation-delay:${Math.random()}s`;c.appendChild(b)}document.body.appendChild(c);setTimeout(()=>c.remove(),3500)}
+function det(){const d=S.det;if(!d)return`<div class=card><h2>🔍 ${t('detective')}</h2><p>Detect → Confirm → Support → Reassess → Update. A wrong answer is <b>evidence, not proof</b>.</p><p class=mu>Try: pick <b>−1/3</b> (option B), then follow-ups. Answer correctly for recovery or wrongly to see persistent difficulty.</p><button class=pri onclick=detStart()>${t('start')}</button></div>`;
+ let h='<div class=card><h2>🔍 Learning Detective</h2>';
+ if(d.st=='q')h+=`<p><b>${d.q[S.lang]}</b></p>`+d.q.o.map((o,i)=>`<button class=opt onclick=detPick(${i})>${'ABCD'[i]}. ${o[0]}</button>`).join('');
+ if(d.st=='follow')h+=`<p>Clue: <span class="tag warn">${d.tag||'none'}</span> (low–medium evidence, not a verdict)</p><p><b>Follow-up: 1/2 + 1/2 = ?</b></p><button class=opt onclick="detFollow(1)">1</button><button class=opt onclick="detFollow(0)">2/4</button>`;
+ if(d.st=='retry')h+=`<p><span class="tag good">${d.evid}</span></p><p>Retry the original: (−3/4)+(1/2)</p><button class=opt onclick="detStart()">Retry</button>`;
+ if(d.st=='support'||d.st=='persist')h+=`<p><span class="tag warn">${d.evid}</span></p><div class=card><b>Hint:</b> fractions can be added only when denominators match.<br><b>Worked example:</b> −3/4 + 1/2 = −3/4 + 2/4 = −1/4 <br><b>Number line:</b> start at −3/4, move +2/4 right → −1/4.<br><b>Prerequisite:</b> equivalent fractions & LCM (1/2 = 2/4).</div>`+(d.st=='support'?`<p><b>Reassess (new numbers): (−2/3) + (1/6) = ?</b></p><button class=opt onclick="detRe('-1/2')">−1/2</button><button class=opt onclick="detRe('-5/9')">−5/9</button><button class=opt onclick="detRe('-1/6')">−1/6</button>`:`<p class="tag warn">Persistent difficulty → Teacher Action Card raised (see Teacher tab). Support moves to prerequisite.</p>`);
+ if(d.st=='done')h+=`<p class="pop tag good" style="font-size:1.1rem">${d.msg}</p>`;
+ return h+`<p class=mu>Why this path: ${S.path?S.path.join(' — '):'—'}</p><button onclick="S.det=null;render()">Reset</button></div>`}
+/* Views */
+function student(){const bk=S.bkt;return`<section class="card hero"><div><h1>${t('tag')}</h1><p>${t('sub')}</p><p><span class=tag>Class 8 · NCERT Rational Numbers</span><span class=tag>Offline-first PWA design</span></p><button class=pri onclick="go('detective')">${t('start')}</button></div><div class=stage><div class="orb" style="width:30px;height:30px;left:8%;top:10%"></div><div class="orb" style="width:18px;height:18px;right:12%;top:60%;animation-delay:1s"></div><div class=cube><div>½</div><div>−¾</div><div>⅔</div><div>+</div><div>÷</div><div>−1</div></div></div></section>
+<div class=grid><div class=card><h2>${t('mastery')}</h2>${S.concepts.map((c,i)=>`<p style="margin:6px 0">${c[S.lang=='en'?0:1]} <span class=mu>· ${band(S.m[i])}</span></p><div class=bar><i style="width:${S.m[i]*100}%"></i></div>`).join('')}<p class=mu>Starting values are sample data.</p></div>
+<div class=card><h2>Adaptive practice</h2>${practice()}<p class=mu>Rule level: ${S.rule.lvl}/3 · Path: ${S.path?S.path[0]+' – '+S.path[1]:'–'}</p></div>
+<div class=card><h2>BKT-inspired estimate</h2><p class=mu>p0=${P.p0}, learn=${P.T}, slip=${P.s}, guess=${P.g} (unvalidated defaults)</p><b>${(bk.p*100).toFixed(0)}%</b><div class=bar><i style="width:${bk.p*100}%"></i></div>${bk.hist.slice(-5).map(x=>`<div class=mu>${x}</div>`).join('')||'<div class=mu>Answer a question to see how each answer changes the estimate.</div>'}</div>
+<div class=card><h2>${t('sync')}</h2><p>${S.queue.length} queued · ${S.server.size} synced (deduped by attempt ID)</p><p class=mu>Toggle Online/Offline above, answer, then go online to sync. Simulated server in this demo.</p><h3>History</h3>${S.hist.slice(0,5).map(x=>`<div class=mu>${x}</div>`).join('')}</div></div>`}
+function practice(){const q=S.pool[S.pi%S.pool.length];return`<p><b>${q[1]}</b></p>`+q[2].map((o,i)=>`<button class=opt onclick="ans(${i},this)">${o}</button>`).join('')}
+function ans(i,b){const q=S.pool[S.pi%S.pool.length],ok=i==q[3];b.classList.add(ok?'right':'wrong');if(ok)burst();record(ok,0,'practice');S.pi++;setTimeout(render,700)}
+function teacher(){return`<div class=card><h2>Class view <span class="tag warn">SAMPLE DATA</span></h2><div class=grid><div>${[['Adding rationals',.38],['Comparing',.55],['LCM',.62],['Meaning',.74]].map(c=>`<p style="margin:6px 0">${c[0]} ${c[1]*100}%</p><div class=bar><i style="width:${c[1]*100}%"></i></div>`).join('')}</div><div><b>Recurring misconceptions</b><table><tr><td>Added num. & den. separately</td><td>38%</td></tr><tr><td>Ignored negative sign</td><td>17%</td></tr><tr><td>Sign slip</td><td>9%</td></tr></table><p>Ready for challenge: 6 students</p></div></div><label>Teacher-set threshold (%): <b>${S.cfg.thr}</b><input type=range min=10 max=60 value=${S.cfg.thr} oninput="S.cfg.thr=this.value;this.previousElementSibling.textContent=this.value"></label><div class=grid><label>Up after correct streak<input type=number min=1 value=${S.cfg.up} onchange="S.cfg.up=+this.value"></label><label>Prereq after wrong streak<input type=number min=1 value=${S.cfg.down} onchange="S.cfg.down=+this.value"></label><label>Teacher help at wrong streak<input type=number min=1 value=${S.cfg.help} onchange="S.cfg.help=+this.value"></label></div></div>
+<h2>Teacher Action Cards</h2>${S.cards.map(c=>`<div class=card><b>${c.c}</b> ${c.sample?'<span class="tag warn">sample</span>':'<span class=tag>from demo learner</span>'}<p>👁 ${c.obs}</p><p>⚙ Rule: ${c.rule}</p><p>💡 <span ${c.edit?'':''}>${c.act}</span></p>${c.st=='pending'?`<div class=row><button class=pri onclick="dec(${c.id},'accepted')">Accept</button><button onclick="edit(${c.id})">Edit</button><button onclick="dec(${c.id},'dismissed')">Dismiss</button></div>`:`<span class="tag ${c.st=='accepted'?'good':'warn'}">${c.st}</span>`}</div>`).join('')}<button onclick="tour()">▶ Guided walkthrough / quick start</button>`}
+function dec(id,s){S.cards.find(c=>c.id==id).st=s;render()}
+function edit(id){const c=S.cards.find(c=>c.id==id),n=prompt('Edit suggested action',c.act);if(n){c.act=n;render()}}
+function tour(step=0){const s=['Welcome! This demo class uses SAMPLE data only.','Class view shows mastery and recurring misconceptions.','Action Cards explain what was seen and which rule fired. Accept, Edit or Dismiss – nothing is automatic.','Quick start: 1) set thresholds 2) run Detective demo as a student 3) review the card it creates.'];
+ const m=document.createElement('div');m.className='modal';m.innerHTML=`<div class=card role=dialog aria-modal=true style="max-width:420px"><h3>Step ${step+1}/${s.length}</h3><p>${s[step]}</p><div class=row><button id=x>Close</button><button class=pri id=n>${step<3?'Next':'Done'}</button></div></div>`;document.body.appendChild(m);m.querySelector('#x').onclick=()=>m.remove();m.querySelector('#n').onclick=()=>{m.remove();if(step<3)tour(step+1)}}
+function content(){return`<div class=card><h2>Question editor & review workflow</h2>${S.qs.map((q,qi)=>`<div class=card><b>${q.id}</b> <span class="tag ${q.st=='published'?'good':'warn'}">${q.st}</span> v${q.v.length}<label>Stem (EN)<input value="${q.en}" onchange="qe(${qi},this.value)"></label><label>Telugu stem<input value="${q.te}" onchange="S.qs[${qi}].te=this.value"></label><table>${q.o.map((o,i)=>`<tr><td>${'ABCD'[i]}</td><td>${o[0]}${i==q.a?' ✓':''}</td><td>${o[1]||'Correct'}</td></tr>`).join('')}</table><p class=${(q.o.filter((o,i)=>i==q.a).length==1)?'good tag':'warn tag'}>Validation: ${q.o.length} options, 1 correct, ${q.o.filter((o,i)=>i!=q.a&&!o[1]).length} untagged distractors</p><div class=row><button onclick="wf(${qi})">Advance: draft→reviewed→published</button><button onclick="rep(${qi})">Report correction</button></div><details><summary>Version history</summary>${q.v.map(v=>`<div class=mu>${v[0]}: ${v[1]}</div>`).join('')}</details></div>`).join('')}<p class=mu>Edits live in this browser session only (no backend here).</p></div>`}
+function qe(i,v){const q=S.qs[i];q.en=v;q.st='draft';q.v.push(['v'+(q.v.length+1),'Stem edited → back to draft']);render()}
+function wf(i){const q=S.qs[i];q.st=q.st=='draft'?'reviewed':'published';q.v.push(['v'+(q.v.length+1),'Status → '+q.st]);render()}
+function rep(i){const n=prompt('Describe the correction');if(n){S.qs[i].v.push(['report',n]);render()}}
+/* Comparison on SYNTHETIC cases */
+const CASES=[['✓✓✗✓✓',1],['✗✗✓✗✗',0],['✗✓✓✓✓',1],['✓✗✗✗✓',0],['✗✗✗✓✓',1],['✓✓✓✗✗',0],['✗✗✓✓✗',0],['✓✗✓✓✓',1]];
+function cmp(){let rr=0,bb=0;const rows=CASES.map(([s,lab])=>{let cc=0,p=P.p0;for(const ch of s){cc=ch=='✓'?cc+1:0;p=bkt(p,ch=='✓')}const r=cc>=2?1:0,b=p>=.85?1:0;rr+=r==lab;bb+=b==lab;return`<tr><td>${s}</td><td>${lab?'mastered':'not yet'}</td><td>${r?'mastered':'not yet'}</td><td>${b?'mastered':'not yet'} (${(p*100).toFixed(0)}%)</td></tr>`}).join('');
+ return`<div class=card><h2>Rule baseline vs BKT-inspired</h2><p class="tag warn">8 SYNTHETIC cases written for this demo, not pilot data</p><table><tr><th>Sequence</th><th>Teacher label</th><th>Rules</th><th>BKT</th></tr>${rows}</table><p>Agreement with labels: Rules ${rr}/8 · BKT ${bb}/8</p><p class=mu><b>Limitations:</b> tiny synthetic sample; thresholds and BKT parameters are unvalidated; this does NOT show either method is better. Real comparison needs teacher-labelled misconceptions and fresh reassessment results from a supervised pilot. No accuracy figure is claimed.</p></div>`}
+function about(){return`<div class=card><h2>Implemented vs planned</h2><p><span class="tag good">In this prototype (browser-only)</span> Student dashboard, Learning Detective demo, rule paths with explanations, BKT estimator, teacher cards, onboarding tour, content editor workflow, English/Telugu labels, offline queue with IndexedDB and deduped simulated sync, comparison on synthetic cases, keyboard-accessible controls.</p><p><span class="tag warn">Not built / not verified here</span> FastAPI backend, PostgreSQL, role-based auth, service-worker caching, Vercel/Render deployment, tests, real NCERT content (~35 concepts, ~200 questions), full Telugu translation, pilot results. These need a repository environment; none are claimed as done.</p></div>`}
+const V={student,detective:det,teacher,content,compare:cmp,about};
+function go(x){S.tab=x;render()}
+function render(){$('#nav').innerHTML=Object.keys(V).map(k=>`<button class="${S.tab==k?'on':''}" role=tab aria-selected=${S.tab==k} onclick="go('${k}')">${t(k)}</button>`).join('');$('#net').textContent=S.online?t('online'):t('offline');$('#lng').textContent=S.lang=='en'?'తెలుగు':'English';$('#app').innerHTML=V[S.tab]();document.documentElement.lang=S.lang}
+$('#net').onclick=()=>{S.online=!S.online;sync();render()};$('#lng').onclick=()=>{S.lang=S.lang=='en'?'te':'en';render()};
+document.addEventListener('mousemove',e=>{document.querySelectorAll('.cube').forEach(c=>{});const x=(e.clientX/innerWidth-.5)*6,y=(e.clientY/innerHeight-.5)*-6;document.querySelectorAll('.card').forEach(c=>{if(c.matches(':hover'))c.style.transform=`perspective(800px) rotateX(${y}deg) rotateY(${x}deg)`;else c.style.transform=''})});
+render();
+</script></body></html>
