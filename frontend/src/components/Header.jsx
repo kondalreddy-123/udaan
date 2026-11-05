@@ -5,70 +5,76 @@ export default function Header({
   setLang,
   activeTab,
   setActiveTab,
-  role,
-  setRole,
+  currentUser,
+  onOpenAuth,
+  onOpenParentOnboarding,
+  onLogout,
   online,
   setOnline,
   lowBandwidth,
   setLowBandwidth,
   t
 }) {
-  // Role-filtered tabs: students don't see teacher-only tabs, teachers don't see compare
+  const role = currentUser?.role || 'guest';
+
+  // Role-filtered tabs
   const allTabs = [
-    { id: 'hero', icon: '✨', roles: ['student', 'teacher', 'author'] },
-    { id: 'student', icon: '🚀', roles: ['student', 'author'] },
-    { id: 'galaxy', icon: '🪐', roles: ['student', 'author'] },
-    { id: 'mathLab', icon: '🔬', roles: ['student', 'author'] },
-    { id: 'detective', icon: '🔍', roles: ['student', 'author'] },
-    { id: 'teacher', icon: '👨‍🏫', roles: ['teacher', 'author'] },
-    { id: 'content', icon: '📝', roles: ['teacher', 'author'] },
-    { id: 'compare', icon: '📊', roles: ['student', 'teacher', 'author'] },
+    { id: 'hero', icon: '✨', label: t('hero') || 'Home', roles: ['guest', 'student', 'teacher', 'author', 'admin'] },
+    { id: 'admin', icon: '⚙️', label: 'Admin Portal', roles: ['admin'] },
+    { id: 'student', icon: '🚀', label: t('student') || 'Student Dashboard', roles: ['student', 'admin'] },
+    { id: 'parent', icon: '👨‍👩‍👧', label: t('parent') || 'My Family', roles: ['parent'] },
+    { id: 'galaxy', icon: '🪐', label: t('galaxy') || 'Topics', roles: ['guest', 'student', 'admin'] },
+    { id: 'mathLab', icon: '🔬', label: t('mathLab') || 'Math Lab', roles: ['guest', 'student', 'admin'] },
+    { id: 'detective', icon: '🔍', label: t('detective') || 'Review mistakes', roles: ['student', 'admin'] },
+    { id: 'teacher', icon: '👨‍🏫', label: t('teacher') || 'Teacher Dashboard', roles: ['teacher', 'admin'] },
+    { id: 'content', icon: '📝', label: t('content') || 'Lesson Planner', roles: ['teacher', 'author', 'admin'] },
+    {
+      id: 'compare',
+      icon: '📊',
+      label: role === 'teacher'
+        ? (lang === 'te' ? 'అభ్యాస అంతర్దృష్టులు' : 'Learning Insights')
+        : role === 'author'
+          ? (lang === 'te' ? 'నమూనా మూల్యాంకనం' : 'Model Evaluation')
+          : t('compare'),
+      roles: ['student', 'teacher', 'author', 'admin']
+    },
   ];
 
   const tabs = allTabs.filter(tab => tab.roles.includes(role));
 
-  const cycleRole = () => {
-    const roles = ['student', 'teacher', 'author'];
-    const nextIdx = (roles.indexOf(role) + 1) % roles.length;
-    const nextRole = roles[nextIdx];
-    setRole(nextRole);
-    if (nextRole === 'teacher') setActiveTab('teacher');
-    else if (nextRole === 'author') setActiveTab('content');
-    else setActiveTab('student');
+  const roleBadgeConfig = {
+    student: { label: 'Student', color: '#75c6cf', bg: 'rgba(72, 156, 166, 0.12)' },
+    parent: { label: 'Parent', color: '#7bc5a0', bg: 'rgba(74, 151, 111, 0.12)' },
+    teacher: { label: 'Teacher', color: '#b6a2d8', bg: 'rgba(126, 96, 164, 0.14)' },
+    author: { label: 'Author', color: '#d8aa73', bg: 'rgba(174, 120, 55, 0.14)' },
+    admin: { label: 'Admin', color: '#d8878b', bg: 'rgba(160, 68, 74, 0.14)' },
+    guest: { label: 'Guest', color: '#a3afba', bg: 'rgba(148, 163, 184, 0.12)' }
   };
 
-  const roleLabel = role === 'student' ? '🎓 Student' : role === 'teacher' ? '👨‍🏫 Teacher' : '✏️ Author';
-  const roleColor = role === 'student' ? '#00f2fe' : role === 'teacher' ? '#8a4bff' : '#fb923c';
+  const currentBadge = roleBadgeConfig[role] || roleBadgeConfig.guest;
+
+  const languageOrder = ['en', 'te', 'hi'];
+  const languageLabels = { en: 'English', te: 'తెలుగు', hi: 'हिंदी' };
+  const cycleLanguage = () => {
+    const currentIndex = languageOrder.indexOf(lang);
+    setLang(languageOrder[(currentIndex + 1) % languageOrder.length]);
+  };
 
   return (
     <header>
-      <div className="logo-box" onClick={() => setActiveTab('hero')} title="Return to Launch Experience">
+      <div className="logo-box" onClick={() => setActiveTab('hero')} title="Return home" style={{ cursor: 'pointer' }}>
         <svg className="origami-logo" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <linearGradient id="origamiGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#00f2fe" />
-              <stop offset="100%" stopColor="#0284c7" />
-            </linearGradient>
-            <linearGradient id="origamiGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#8a4bff" />
-              <stop offset="100%" stopColor="#c084fc" />
-            </linearGradient>
-            <linearGradient id="origamiGrad3" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#38bdf8" />
-              <stop offset="100%" stopColor="#7928ca" />
-            </linearGradient>
-          </defs>
-          <polygon points="12,48 55,18 42,62" fill="url(#origamiGrad1)" opacity="0.95" />
-          <polygon points="55,18 92,32 50,58" fill="url(#origamiGrad2)" opacity="0.9" />
-          <polygon points="42,62 50,58 78,82" fill="url(#origamiGrad3)" opacity="0.85" />
-          <polygon points="26,68 42,62 38,88" fill="url(#origamiGrad1)" opacity="0.75" />
-          <circle cx="55" cy="18" r="3" fill="#00f2fe" filter="drop-shadow(0 0 6px #00f2fe)" />
+          <polygon points="12,48 55,18 42,62" fill="#85bdb6" />
+          <polygon points="55,18 92,32 50,58" fill="#d1e2dc" />
+          <polygon points="42,62 50,58 78,82" fill="#668f89" />
+          <polygon points="26,68 42,62 38,88" fill="#9fcac0" />
+          <circle cx="55" cy="18" r="3" fill="#e5f0eb" />
         </svg>
         <div className="logo">
           <span>UDAAN</span>
-          <span className="logo-sub">AI-Powered Adaptive Learning</span>
+          <span className="logo-sub">Adaptive learning · Class 8</span>
         </div>
-        <span className="badge-tag">NCERT CLASS 8</span>
+        <span className="badge-tag">MATHEMATICS</span>
       </div>
 
       <nav role="tablist" aria-label="Main Navigation">
@@ -80,16 +86,7 @@ export default function Header({
             aria-selected={activeTab === tab.id}
             onClick={() => setActiveTab(tab.id)}
           >
-            <span>{tab.icon}</span>
-            <span>
-              {tab.id === 'compare'
-                ? role === 'teacher'
-                  ? (lang === 'te' ? 'అభ్యాస అంతర్దృష్టులు' : 'Learning Insights')
-                  : role === 'author'
-                    ? (lang === 'te' ? 'నమూనా మూల్యాంకనం' : 'Model Evaluation')
-                    : t('compare')
-                : t(tab.id)}
-            </span>
+            <span>{tab.label}</span>
           </button>
         ))}
       </nav>
@@ -114,21 +111,65 @@ export default function Header({
           {online ? t('online') : t('offline')}
         </button>
 
-        <button
-          className="sec"
-          onClick={cycleRole}
-          title="Switch role (Student / Teacher / Author)"
-          style={{ fontSize: '0.82rem', borderColor: roleColor, color: roleColor }}
-        >
-          {roleLabel}
-        </button>
+        {/* User Session & Authentication Control */}
+        {currentUser ? (
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <span
+              style={{
+                fontSize: '0.8rem',
+                padding: '5px 10px',
+                borderRadius: '7px',
+                border: `1px solid ${currentBadge.color}55`,
+                backgroundColor: currentBadge.bg,
+                color: currentBadge.color,
+                fontWeight: 600,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+              title={`${currentUser.full_name} (${currentUser.email})`}
+            >
+              <span>{currentBadge.label}</span>
+              <span style={{ color: '#f8fafc', fontWeight: 'normal', maxWidth: '110px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {(currentUser.full_name || currentUser.email || 'User').split(' ')[0]}
+              </span>
+            </span>
+            <button
+              className="sec header-logout"
+              onClick={onLogout}
+              title="Secure Logout (Session Revocation)"
+              style={{ fontSize: '0.78rem', padding: '6px 10px' }}
+            >
+              Logout
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <button
+              onClick={onOpenParentOnboarding}
+              title="Parent or guardian registration help"
+              className="sec header-parent"
+            >
+              Parent / Guardian
+            </button>
+            <button
+              className="pri header-signin"
+              onClick={onOpenAuth}
+              style={{ fontSize: '0.82rem', padding: '7px 13px' }}
+            >
+              Sign in
+            </button>
+          </div>
+        )}
 
         <button
-          onClick={() => setLang(lang === 'en' ? 'te' : 'en')}
-          title="Toggle English / Telugu"
+          onClick={cycleLanguage}
+          title={`Change language: ${languageLabels[lang] || 'English'} → ${languageLabels[languageOrder[(languageOrder.indexOf(lang) + 1) % languageOrder.length]]}`}
+          aria-label={`Change language. Current language: ${languageLabels[lang] || 'English'}`}
+          className="language-button"
           style={{ fontSize: '0.82rem' }}
         >
-          🌐 {lang === 'en' ? 'తెలుగు' : 'English'}
+          🌐 {languageLabels[lang] || 'English'}
         </button>
       </div>
     </header>

@@ -4,7 +4,8 @@ import uuid
 from sqlalchemy.orm import Session
 from app.models import (
     User, Concept, Question, QuestionVersion, ConceptMastery,
-    TeacherActionCard, TeacherConfig, Attempt, DiagnosticRecord
+    TeacherActionCard, TeacherConfig, Attempt, DiagnosticRecord,
+    ParentProfile, ParentStudentLink
 )
 from app.auth import hash_password
 
@@ -26,24 +27,86 @@ def seed_database(db: Session):
         (13, "sneha@udaan.edu", "Sneha Gupta", "student", "Class 8 - Section A"),
         (14, "aditya@udaan.edu", "Aditya Varma", "student", "Class 8 - Section A"),
         (15, "ritu@udaan.edu", "Ritu Shah", "student", "Class 8 - Section A"),
+        (16, "author@udaan.edu", "Prof. R. Ramanujan (Author)", "author", "Class 8 - Section A"),
+        (17, "parent@udaan.edu", "Sunita Sharma (Parent)", "parent", "Class 8 - Section A"),
     ]
 
     for uid, email, name, role, cname in cohort_users:
-        u = db.query(User).filter(User.id == uid).first()
+        u = db.query(User).filter(User.email == email).first()
         if not u:
-            u = User(
-                id=uid,
-                email=email,
-                hashed_password=hash_password("udaan123"),
-                full_name=name,
-                role=role,
-                class_name=cname,
-                grade=8
-            )
+            u_by_id = db.query(User).filter(User.id == uid).first()
+            if u_by_id and u_by_id.email != email:
+                u = User(
+                    email=email,
+                    hashed_password=hash_password("udaan123"),
+                    full_name=name,
+                    role=role,
+                    class_name=cname,
+                    grade=8,
+                    created_by="system_seed"
+                )
+            else:
+                u = User(
+                    id=uid,
+                    email=email,
+                    hashed_password=hash_password("udaan123"),
+                    full_name=name,
+                    role=role,
+                    class_name=cname,
+                    grade=8,
+                    created_by="system_seed"
+                )
             db.add(u)
         else:
+            u.full_name = name
+            u.role = role
             if not u.class_name:
                 u.class_name = cname
+            # Rehash to Argon2id if using old hash format
+            if not u.hashed_password.startswith("$argon2"):
+                u.hashed_password = hash_password("udaan123")
+    db.commit()
+
+    # Seed Demo Parent Profile & Verified Link (Sunita Sharma -> Aarav Sharma)
+    parent_user = db.query(User).filter(User.email == "parent@udaan.edu").first()
+    student_user = db.query(User).filter(User.email == "student@udaan.edu").first()
+    teacher_user = db.query(User).filter(User.email == "teacher@udaan.edu").first()
+
+    if parent_user:
+        p_prof = db.query(ParentProfile).filter(ParentProfile.user_id == parent_user.id).first()
+        if not p_prof:
+            p_prof = ParentProfile(
+                user_id=parent_user.id,
+                phone_number="9876543210",
+                preferred_language="te",
+                contact_method="in_app",
+                is_verified=True
+            )
+            db.add(p_prof)
+        else:
+            p_prof.is_verified = True
+
+        if student_user:
+            p_link = db.query(ParentStudentLink).filter(
+                ParentStudentLink.student_id == student_user.id
+            ).first()
+            if not p_link:
+                p_link = ParentStudentLink(
+                    parent_id=parent_user.id,
+                    student_id=student_user.id,
+                    relationship_type="mother",
+                    status="verified",
+                    verification_method="teacher_assisted",
+                    verified_by_teacher_id=teacher_user.id if teacher_user else 2,
+                    verified_at=datetime.datetime.utcnow(),
+                    notes="Assisted registration by Dr. Lakshmi Rao (School verification)"
+                )
+                db.add(p_link)
+            else:
+                p_link.parent_id = parent_user.id
+                p_link.status = "verified"
+                if not p_link.verified_at:
+                    p_link.verified_at = datetime.datetime.utcnow()
     db.commit()
 
     # 2. Concepts (NCERT Class 8 Mathematics: Rational Numbers)

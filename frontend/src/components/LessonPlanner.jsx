@@ -193,7 +193,13 @@ export default function LessonPlanner({
     setAiDrafting(true);
     try {
       const prompt = `Class 8 NCERT Mathematics Topic: ${lesson.title_en} (${lesson.topic}). Identify the top mathematical misconception students make, explain why it happens, and give a worked correction.`;
-      const res = await api.getAIExplanation(prompt, 'rational_addition_error', lang);
+      const res = await api.getAIExplanation({
+        stem: prompt,
+        student_answer: '',
+        misconception_tag: 'rational_addition_error',
+        topic: lesson.topic || 'Rational Numbers',
+        lang,
+      });
       const explanation = res?.explanation || 'Common error: Adding numerators and denominators directly.';
 
       const newSection = {

@@ -570,11 +570,11 @@ export default function LearningDetective({
       setAiLoading(true);
       try {
         const aiResp = await api.getAIExplanation({
-          concept_id: currentCase.concept_id,
-          question_text: lang === 'te' ? currentCase.primary.stem_te : currentCase.primary.stem_en,
+          stem: lang === 'te' ? currentCase.primary.stem_te : currentCase.primary.stem_en,
           student_answer: opt.text,
-          suspected_misconception: opt.tag || 'unknown',
-          language: lang === 'te' ? 'te' : 'en'
+          misconception_tag: opt.tag || 'unknown',
+          topic: currentCase.topic || 'Rational Numbers',
+          lang: lang === 'te' ? 'te' : 'en'
         });
         setAiExplanation(aiResp);
       } catch (err) {

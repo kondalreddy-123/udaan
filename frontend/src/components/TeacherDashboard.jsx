@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ClassroomObservatory from './ClassroomObservatory';
+import TeacherMessages from './TeacherMessages';
+import AiCourseCenter from './AiCourseCenter';
 import { api } from '../services/api';
 
 export default function TeacherDashboard({
@@ -8,13 +10,17 @@ export default function TeacherDashboard({
   onUpdateCfg,
   onCardStatus,
   onCardEdit,
-  onOpenTour
+  onOpenTour,
+  lang = 'en',
+  t
 }) {
+  const tr = (key) => (typeof t === 'function' ? t(key) : key);
   const [selectedClass, setSelectedClass] = useState('Class 8 - Section A');
   const [selectedChapter, setSelectedChapter] = useState('Rational Numbers');
-  const [viewMode, setViewMode] = useState('overview'); // 'overview' | 'cards' | 'observatory' | 'interventions'
+  const [viewMode, setViewMode] = useState('overview'); // 'overview' | 'cards' | 'observatory' | 'interventions' | 'parents' | 'messages' | 'ai'
   const [showOnboarding, setShowOnboarding] = useState(true);
   const [generatedWorksheet, setGeneratedWorksheet] = useState(null);
+  const [messagesUnread, setMessagesUnread] = useState(0);
 
   // Live Data States from API
   const [summary, setSummary] = useState(null);
@@ -22,6 +28,39 @@ export default function TeacherDashboard({
   const [loading, setLoading] = useState(false);
   const [selectedStudentDetail, setSelectedStudentDetail] = useState(null);
   const [loadingStudentDetail, setLoadingStudentDetail] = useState(false);
+
+  // Student Search (Part 4)
+  const [studentSearchQ, setStudentSearchQ] = useState('');
+  const [studentSearchFilters, setStudentSearchFilters] = useState({
+    class_name: '',
+    needs_attention: null,
+    is_active: null,
+    sort_by: 'name'
+  });
+  const [studentSearchResults, setStudentSearchResults] = useState([]);
+  const [studentSearchTotal, setStudentSearchTotal] = useState(0);
+  const [studentSearchPage, setStudentSearchPage] = useState(1);
+  const [studentSearchTotalPages, setStudentSearchTotalPages] = useState(1);
+  const [studentSearchLoading, setStudentSearchLoading] = useState(false);
+
+  // Phase 3: parent-student relationship management
+  const [parentLinks, setParentLinks] = useState([]);
+  const [parentLinksLoading, setParentLinksLoading] = useState(false);
+  const [parentNotice, setParentNotice] = useState('');
+  const [parentError, setParentError] = useState('');
+  const [reissuedCode, setReissuedCode] = useState(null);
+  const [parentSetupCode, setParentSetupCode] = useState(null);
+  const [showParentForm, setShowParentForm] = useState(false);
+  const [parentFormError, setParentFormError] = useState('');
+  const [parentForm, setParentForm] = useState({
+    parent_name: '',
+    phone_number: '',
+    email: '',
+    password: '',
+    preferred_language: 'te',
+    relationship_type: 'parent',
+    contact_method: 'school_record',
+  });
 
   // Load summary and students from API
   const loadTeacherData = async () => {
@@ -44,7 +83,136 @@ export default function TeacherDashboard({
     loadTeacherData();
   }, [selectedClass, selectedChapter]);
 
+  // Keep the dashboard's parent-message badge current even when the teacher
+  // has not opened the Messages view yet.
+  useEffect(() => {
+    let cancelled = false;
+    const refreshUnread = async () => {
+      try {
+        const data = await api.getTeacherUnreadCount();
+        if (!cancelled) setMessagesUnread(Number(data?.unread_messages || 0) + Number(data?.unread_notifications || 0));
+      } catch (_) {
+        // non-fatal
+      }
+    };
+    refreshUnread();
+    const timer = window.setInterval(refreshUnread, 30000);
+    return () => { cancelled = true; window.clearInterval(timer); };
+  }, []);
+
+  // Phase 3: load parent links for authorized students only (backend-scoped).
+  const loadParentLinks = async () => {
+    try {
+      setParentLinksLoading(true);
+      setParentError('');
+      const links = await api.getTeacherParentLinks(null, selectedClass === 'All Classes' ? null : selectedClass);
+      setParentLinks(Array.isArray(links) ? links : []);
+    } catch (err) {
+      setParentError(err.message || 'Could not load parent links.');
+    } finally {
+      setParentLinksLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (viewMode === 'parents') loadParentLinks();
+  }, [viewMode, selectedClass]);
+
+  const runLinkAction = async (action, link, successMessage) => {
+    setParentNotice('');
+    setParentError('');
+    try {
+      setParentLinksLoading(true);
+      await action(link.id);
+      setParentNotice(successMessage);
+      await loadParentLinks();
+    } catch (err) {
+      setParentError(err.message || 'The action could not be completed.');
+    } finally {
+      setParentLinksLoading(false);
+    }
+  };
+
+  const handleReissueParentInvitation = async (link) => {
+    setParentNotice('');
+    setParentError('');
+    setReissuedCode(null);
+    try {
+      setParentLinksLoading(true);
+      const res = await api.reissueParentInvitation(link.id);
+      setReissuedCode({ linkId: link.id, ...res });
+      setParentNotice('A new single-use invitation code was created. Share it privately with the parent.');
+      await loadParentLinks();
+    } catch (err) {
+      setParentError(err.message || 'Could not reissue an invitation.');
+    } finally {
+      setParentLinksLoading(false);
+    }
+  };
+
+  const handleAddParent = async (event) => {
+    event.preventDefault();
+    if (!selectedStudentDetail) return;
+    setParentFormError('');
+    setParentNotice('');
+    setParentSetupCode(null);
+    try {
+      setParentLinksLoading(true);
+      const res = await api.teacherAddParent(selectedStudentDetail.student_id, {
+        parent_name: parentForm.parent_name.trim(),
+        email: parentForm.email.trim() || null,
+        phone_number: parentForm.phone_number.trim() || null,
+        password: parentForm.password.trim() || null,
+        preferred_language: parentForm.preferred_language,
+        relationship_type: parentForm.relationship_type,
+        contact_method: parentForm.contact_method,
+      });
+      if (res && res.setup_code) {
+        setParentSetupCode(res);
+        setParentNotice('Parent registered and relationship verified in person. Give the setup code below to the parent so they can choose their own sign-in details.');
+      } else {
+        setParentNotice('Parent registered and relationship verified in person.');
+      }
+      setShowParentForm(false);
+      setParentForm({ parent_name: '', phone_number: '', email: '', password: '', preferred_language: 'te', relationship_type: 'parent', contact_method: 'school_record' });
+      await loadParentLinks();
+    } catch (err) {
+      setParentFormError(err.message || 'Could not register this parent.');
+    } finally {
+      setParentLinksLoading(false);
+    }
+  };
+
   // Load deep dive detail for an individual student
+  const handleTeacherStudentSearch = async (overrideParams = {}) => {
+    setStudentSearchLoading(true);
+    try {
+      const q = overrideParams.q !== undefined ? overrideParams.q : studentSearchQ;
+      const filters = overrideParams.filters !== undefined ? overrideParams.filters : studentSearchFilters;
+      const page = overrideParams.page !== undefined ? overrideParams.page : studentSearchPage;
+
+      const params = {
+        q: q || undefined,
+        class_name: filters.class_name || undefined,
+        needs_attention: filters.needs_attention !== null ? filters.needs_attention : undefined,
+        is_active: filters.is_active !== null ? filters.is_active : undefined,
+        sort_by: filters.sort_by || 'name',
+        page: page,
+        page_size: 12
+      };
+      const res = await api.searchTeacherStudents(params);
+      setStudentSearchResults(res.results || []);
+      setStudentSearchTotal(res.total || 0);
+      setStudentSearchTotalPages(res.total_pages || 1);
+      setStudentSearchPage(res.page || 1);
+    } catch (_) {
+      setStudentSearchResults([]);
+      setStudentSearchTotal(0);
+    } finally {
+      setStudentSearchLoading(false);
+    }
+  };
+
   const handleSelectStudent = async (studentId) => {
     try {
       setLoadingStudentDetail(true);
@@ -312,6 +480,15 @@ export default function TeacherDashboard({
             👥 Student Overview ({students.length})
           </button>
           <button
+            className={viewMode === 'search' ? 'pri' : 'sec'}
+            onClick={() => {
+              setViewMode('search');
+              if (studentSearchResults.length === 0) handleTeacherStudentSearch();
+            }}
+          >
+            🔍 Student Search & Recommendations
+          </button>
+          <button
             className={viewMode === 'cards' ? 'pri' : 'sec'}
             onClick={() => setViewMode('cards')}
           >
@@ -329,6 +506,24 @@ export default function TeacherDashboard({
           >
             🚨 Priority Interventions ({students.filter(s => s.needs_attention).length})
           </button>
+          <button
+            className={viewMode === 'parents' ? 'pri' : 'sec'}
+            onClick={() => setViewMode('parents')}
+          >
+            👨‍👩‍👧 Parent Links
+          </button>
+          <button
+            className={viewMode === 'messages' ? 'pri' : 'sec'}
+            onClick={() => setViewMode('messages')}
+          >
+            ✉️ {tr('messagesTitle')}{messagesUnread ? ` (${messagesUnread})` : ''}
+          </button>
+          <button
+            className={viewMode === 'ai' ? 'pri' : 'sec'}
+            onClick={() => setViewMode('ai')}
+          >
+            🤖 AI Course & Engagement
+          </button>
         </div>
 
         <div className="row" style={{ gap: '8px' }}>
@@ -341,6 +536,313 @@ export default function TeacherDashboard({
           <button onClick={onOpenTour}>▶ Guided Tour</button>
         </div>
       </div>
+
+      {/* PART 4: STUDENT SEARCH & MANAGEMENT VIEW */}
+      {viewMode === 'search' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {/* Search Header Card */}
+          <div className="card" style={{ border: '1px solid rgba(139,92,246,0.35)', background: 'linear-gradient(135deg, rgba(15,23,42,0.95), rgba(30,27,75,0.75))' }}>
+            <div style={{ marginBottom: '16px' }}>
+              <span className="tag purple" style={{ letterSpacing: '0.08em' }}>TEACHER DASHBOARD · STUDENT SEARCH</span>
+              <h3 style={{ margin: '8px 0 4px', fontSize: '1.25rem', color: '#f8fafc', fontWeight: 800 }}>
+                🔍 Student Search & Academic Analytics
+              </h3>
+              <p className="mu" style={{ margin: 0, fontSize: '0.86rem', color: '#94a3b8' }}>
+                Search enrolled students by name, ID, class, section, or learning status. View real-time mastery analytics and next recommended actions.
+              </p>
+            </div>
+
+            {/* Search Input Bar with Icon and Clear Button */}
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '14px' }}>
+              <div style={{ position: 'relative', flex: '1 1 320px' }}>
+                <input
+                  type="text"
+                  value={studentSearchQ}
+                  onChange={(e) => {
+                    setStudentSearchQ(e.target.value);
+                    handleTeacherStudentSearch({ q: e.target.value, page: 1 });
+                  }}
+                  placeholder="Search students by name, student ID, class or section..."
+                  style={{
+                    width: '100%', padding: '11px 16px 11px 40px', fontSize: '0.92rem',
+                    background: 'rgba(15,23,42,0.9)', border: '1px solid rgba(139,92,246,0.4)',
+                    borderRadius: '10px', color: '#f8fafc', outline: 'none', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.3)'
+                  }}
+                />
+                <span style={{ position: 'absolute', left: '14px', top: '11px', color: '#a78bfa', fontSize: '1rem' }}>🔍</span>
+                {studentSearchQ && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStudentSearchQ('');
+                      handleTeacherStudentSearch({ q: '', page: 1 });
+                    }}
+                    style={{ position: 'absolute', right: '12px', top: '10px', background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '1rem' }}
+                  >✕</button>
+                )}
+              </div>
+              <button
+                type="button"
+                className="pri"
+                onClick={() => handleTeacherStudentSearch({ page: 1 })}
+                disabled={studentSearchLoading}
+                style={{ padding: '10px 20px', fontSize: '0.9rem', fontWeight: 700 }}
+              >
+                {studentSearchLoading ? 'Searching…' : 'Search'}
+              </button>
+            </div>
+
+            {/* Filter Dropdowns */}
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center', padding: '12px 14px', borderRadius: '10px', background: 'rgba(15,23,42,0.6)', border: '1px solid rgba(148,163,184,0.15)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 600 }}>Attention:</span>
+                <select
+                  value={studentSearchFilters.needs_attention === null ? '' : String(studentSearchFilters.needs_attention)}
+                  onChange={(e) => {
+                    const val = e.target.value === '' ? null : e.target.value === 'true';
+                    const newF = { ...studentSearchFilters, needs_attention: val };
+                    setStudentSearchFilters(newF);
+                    handleTeacherStudentSearch({ filters: newF, page: 1 });
+                  }}
+                  style={{ padding: '6px 10px', fontSize: '0.8rem', background: '#1e293b', border: '1px solid #475569', borderRadius: '6px', color: '#f1f5f9' }}
+                >
+                  <option value="">All Students</option>
+                  <option value="true">🚨 Needs Attention</option>
+                  <option value="false">✓ On Track</option>
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 600 }}>Activity:</span>
+                <select
+                  value={studentSearchFilters.is_active === null ? '' : String(studentSearchFilters.is_active)}
+                  onChange={(e) => {
+                    const val = e.target.value === '' ? null : e.target.value === 'true';
+                    const newF = { ...studentSearchFilters, is_active: val };
+                    setStudentSearchFilters(newF);
+                    handleTeacherStudentSearch({ filters: newF, page: 1 });
+                  }}
+                  style={{ padding: '6px 10px', fontSize: '0.8rem', background: '#1e293b', border: '1px solid #475569', borderRadius: '6px', color: '#f1f5f9' }}
+                >
+                  <option value="">All Statuses</option>
+                  <option value="true">🟢 Active Recently (&lt;14d)</option>
+                  <option value="false">⚪ Inactive (&gt;14d)</option>
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 600 }}>Sort By:</span>
+                <select
+                  value={studentSearchFilters.sort_by}
+                  onChange={(e) => {
+                    const newF = { ...studentSearchFilters, sort_by: e.target.value };
+                    setStudentSearchFilters(newF);
+                    handleTeacherStudentSearch({ filters: newF, page: 1 });
+                  }}
+                  style={{ padding: '6px 10px', fontSize: '0.8rem', background: '#1e293b', border: '1px solid #475569', borderRadius: '6px', color: '#f1f5f9' }}
+                >
+                  <option value="name">Student Name (A–Z)</option>
+                  <option value="accuracy_desc">Highest Accuracy</option>
+                  <option value="accuracy_asc">Lowest Accuracy</option>
+                  <option value="mastery_desc">Highest Learning Progress</option>
+                  <option value="mastery_asc">Lowest Learning Progress</option>
+                  <option value="last_active">Recently Active</option>
+                </select>
+              </div>
+
+              <span style={{ marginLeft: 'auto', fontSize: '0.8rem', color: '#a78bfa', fontWeight: 600 }}>
+                {studentSearchTotal} student{studentSearchTotal === 1 ? '' : 's'} found
+              </span>
+            </div>
+          </div>
+
+          {/* Teacher Recommendations Section (Part 4.4) */}
+          {studentSearchResults.some(s => s.needs_attention) && (
+            <div className="card" style={{ border: '1px solid rgba(239,68,68,0.3)', background: 'linear-gradient(135deg, rgba(30,27,75,0.7), rgba(15,23,42,0.9))' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                <span style={{ fontSize: '1.2rem' }}>💡</span>
+                <h4 style={{ margin: 0, fontSize: '1rem', color: '#fca5a5', fontWeight: 700 }}>
+                  Teacher Recommendations & Priority Interventions (Real Learning Data)
+                </h4>
+              </div>
+              <p style={{ margin: '0 0 12px', fontSize: '0.84rem', color: '#94a3b8' }}>
+                These students show data-grounded warning signals (low accuracy, repeated mistakes, low topic mastery, or inactivity). Recommended actions are customized per learner.
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '10px' }}>
+                {studentSearchResults.filter(s => s.needs_attention).slice(0, 4).map(s => (
+                  <div key={`rec-${s.id}`} style={{
+                    padding: '12px 14px', borderRadius: '10px', background: 'rgba(239,68,68,0.08)',
+                    border: '1px solid rgba(239,68,68,0.25)', display: 'flex', flexDirection: 'column', gap: '6px'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <strong style={{ color: '#f8fafc', fontSize: '0.9rem' }}>{s.full_name}</strong>
+                      <span className="tag warn" style={{ fontSize: '0.66rem' }}>NEEDS HELP</span>
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                      {s.attention_reasons.map((r, i) => (
+                        <span key={i} style={{ fontSize: '0.7rem', padding: '1px 6px', borderRadius: '4px', background: 'rgba(239,68,68,0.2)', color: '#fca5a5' }}>
+                          • {r}
+                        </span>
+                      ))}
+                    </div>
+                    <div style={{ fontSize: '0.78rem', color: '#cbd5e1', marginTop: '4px' }}>
+                      <strong>Action:</strong> {s.overall_mastery < 0.45 ? 'Assign tactile visual practice (fraction strips) on denominators.' : s.accuracy_pct < 40 ? 'Conduct a 10-minute 1-on-1 step-by-step sign review.' : 'Re-engage student with foundational refresher questions.'}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleSelectStudent(s.id)}
+                      style={{ marginTop: '4px', padding: '5px 10px', fontSize: '0.74rem', background: 'rgba(139,92,246,0.2)', border: '1px solid rgba(139,92,246,0.4)', borderRadius: '6px', color: '#c4b5fd', cursor: 'pointer' }}
+                    >
+                      Open Learning Deep Dive →
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Student Search Results Grid */}
+          {studentSearchResults.length === 0 ? (
+            <div className="card" style={{ textAlign: 'center', padding: '40px 20px' }}>
+              <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>🔍</div>
+              <h4 style={{ margin: '0 0 6px', color: '#f1f5f9', fontSize: '1.1rem' }}>
+                No students found. Try another name, student ID or class.
+              </h4>
+              <p className="mu" style={{ fontSize: '0.86rem', maxWidth: '420px', margin: '0 auto 16px' }}>
+                Ensure spelling is correct, or clear active filters to view all students in your assigned class.
+              </p>
+              <button
+                type="button"
+                className="sec"
+                onClick={() => {
+                  setStudentSearchQ('');
+                  const resetF = { class_name: '', needs_attention: null, is_active: null, sort_by: 'name' };
+                  setStudentSearchFilters(resetF);
+                  handleTeacherStudentSearch({ q: '', filters: resetF, page: 1 });
+                }}
+              >
+                Clear All Filters
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '14px' }}>
+              {studentSearchResults.map((s) => (
+                <div
+                  key={s.id}
+                  className="card"
+                  style={{
+                    padding: '16px 18px', borderRadius: '14px', margin: 0,
+                    border: s.needs_attention ? '1px solid rgba(239,68,68,0.35)' : '1px solid rgba(139,92,246,0.25)',
+                    background: 'linear-gradient(135deg, rgba(15,23,42,0.95), rgba(30,41,59,0.7))',
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.3)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '12px'
+                  }}
+                >
+                  <div>
+                    {/* Header */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div>
+                        <div style={{ fontWeight: 800, fontSize: '1.05rem', color: '#f8fafc' }}>
+                          {s.full_name}
+                        </div>
+                        <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '2px' }}>
+                          ID: #{s.id} · {s.class_name || 'Class 8'}
+                        </div>
+                      </div>
+                      <span className={s.needs_attention ? 'tag warn' : 'tag good'} style={{ fontSize: '0.68rem' }}>
+                        {s.needs_attention ? 'NEEDS ATTENTION' : 'ON TRACK'}
+                      </span>
+                    </div>
+
+                    {/* Progress Bar */}
+                    <div style={{ marginTop: '12px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.76rem', marginBottom: '4px' }}>
+                        <span style={{ color: '#94a3b8' }}>Learning Progress</span>
+                        <strong style={{ color: '#a78bfa' }}>{s.overall_mastery_pct}%</strong>
+                      </div>
+                      <div style={{ height: '6px', background: 'rgba(255,255,255,0.08)', borderRadius: '3px', overflow: 'hidden' }}>
+                        <div style={{
+                          height: '100%', width: `${s.overall_mastery_pct}%`,
+                          background: s.overall_mastery >= 0.7 ? '#10b981' : s.overall_mastery >= 0.4 ? '#f59e0b' : '#ef4444',
+                          borderRadius: '3px'
+                        }} />
+                      </div>
+                    </div>
+
+                    {/* Stats Metrics */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', marginTop: '12px', textAlign: 'center' }}>
+                      <div style={{ padding: '6px', borderRadius: '8px', background: 'rgba(15,23,42,0.7)', border: '1px solid rgba(148,163,184,0.1)' }}>
+                        <div style={{ fontSize: '0.68rem', color: '#94a3b8' }}>Accuracy</div>
+                        <div style={{ fontWeight: 700, fontSize: '0.9rem', color: s.accuracy_pct >= 60 ? '#10b981' : '#f87171' }}>
+                          {s.accuracy_pct}%
+                        </div>
+                      </div>
+                      <div style={{ padding: '6px', borderRadius: '8px', background: 'rgba(15,23,42,0.7)', border: '1px solid rgba(148,163,184,0.1)' }}>
+                        <div style={{ fontSize: '0.68rem', color: '#94a3b8' }}>Mastery Band</div>
+                        <div style={{ fontWeight: 700, fontSize: '0.74rem', color: '#cbd5e1', marginTop: '2px' }}>
+                          {s.bkt_band}
+                        </div>
+                      </div>
+                      <div style={{ padding: '6px', borderRadius: '8px', background: 'rgba(15,23,42,0.7)', border: '1px solid rgba(148,163,184,0.1)' }}>
+                        <div style={{ fontSize: '0.68rem', color: '#94a3b8' }}>Last Active</div>
+                        <div style={{ fontWeight: 700, fontSize: '0.72rem', color: s.is_active_recent ? '#10b981' : '#64748b', marginTop: '2px' }}>
+                          {s.days_since_active !== null ? (s.days_since_active === 0 ? 'Today' : `${s.days_since_active}d ago`) : 'Never'}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Warning flags if any */}
+                    {s.attention_reasons && s.attention_reasons.length > 0 && (
+                      <div style={{ marginTop: '10px', fontSize: '0.72rem', color: '#fca5a5' }}>
+                        ⚠️ {s.attention_reasons.join(' · ')}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* View Student Button */}
+                  <button
+                    type="button"
+                    className="pri"
+                    onClick={() => handleSelectStudent(s.id)}
+                    style={{
+                      width: '100%', padding: '9px 14px', fontSize: '0.84rem', fontWeight: 700,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
+                    }}
+                  >
+                    <span>View Student Performance</span> <span>→</span>
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Pagination Controls */}
+          {studentSearchTotalPages > 1 && (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px', marginTop: '10px' }}>
+              <button
+                type="button"
+                className="sec"
+                disabled={studentSearchPage <= 1 || studentSearchLoading}
+                onClick={() => handleTeacherStudentSearch({ page: studentSearchPage - 1 })}
+                style={{ padding: '6px 14px', fontSize: '0.82rem' }}
+              >
+                ← Previous
+              </button>
+              <span style={{ fontSize: '0.84rem', color: '#94a3b8' }}>
+                Page <strong>{studentSearchPage}</strong> of <strong>{studentSearchTotalPages}</strong> ({studentSearchTotal} students)
+              </span>
+              <button
+                type="button"
+                className="sec"
+                disabled={studentSearchPage >= studentSearchTotalPages || studentSearchLoading}
+                onClick={() => handleTeacherStudentSearch({ page: studentSearchPage + 1 })}
+                style={{ padding: '6px 14px', fontSize: '0.82rem' }}
+              >
+                Next →
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* VIEW 1: STUDENT OVERVIEW & INDIVIDUAL PORTFOLIOS */}
       {viewMode === 'overview' && (
@@ -456,14 +958,108 @@ export default function TeacherDashboard({
                 <h2 style={{ margin: '4px 0', fontSize: '1.4rem' }}>{selectedStudentDetail.full_name}</h2>
                 <span className="mu" style={{ fontSize: '0.84rem' }}>{selectedStudentDetail.email} · {selectedStudentDetail.class_name}</span>
               </div>
-              <button className="sec" onClick={() => setSelectedStudentDetail(null)} style={{ padding: '4px 10px' }}>
-                ✕ Close
-              </button>
+              <div className="row" style={{ gap: '8px' }}>
+                <button
+                  className="pri"
+                  onClick={() => { setShowParentForm((prev) => !prev); setParentFormError(''); }}
+                  style={{ padding: '4px 10px', fontSize: '0.8rem' }}
+                >
+                  👨‍👩‍👧 Add Parent
+                </button>
+                <button className="sec" onClick={() => setSelectedStudentDetail(null)} style={{ padding: '4px 10px' }}>
+                  ✕ Close
+                </button>
+              </div>
+            </div>
+
+            {showParentForm && (
+              <form onSubmit={handleAddParent} style={{ marginTop: '14px', padding: '14px', borderRadius: '10px', background: 'rgba(16, 185, 129, 0.07)', border: '1px solid rgba(16, 185, 129, 0.4)' }}>
+                <h4 style={{ margin: '0 0 4px', color: '#6ee7b7' }}>Teacher-assisted parent registration</h4>
+                <p className="mu" style={{ margin: '0 0 10px', fontSize: '0.8rem' }}>
+                  Use this when a parent is present at school. Only students in your assigned class are shown.
+                  The relationship is marked verified in person. If you leave the password blank, a single-use
+                  setup code is created for the parent to choose their own sign-in details. Passwords are never
+                  returned or logged.
+                </p>
+                {parentFormError && (
+                  <div role="alert" style={{ marginBottom: '10px', color: '#fecdd3', fontSize: '0.82rem' }}>⚠️ {parentFormError}</div>
+                )}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
+                  <label>
+                    Parent name *
+                    <input required value={parentForm.parent_name} onChange={(e) => setParentForm((p) => ({ ...p, parent_name: e.target.value }))} />
+                  </label>
+                  <label>
+                    Phone number
+                    <input value={parentForm.phone_number} onChange={(e) => setParentForm((p) => ({ ...p, phone_number: e.target.value }))} inputMode="tel" />
+                  </label>
+                  <label>
+                    Email (optional)
+                    <input type="email" value={parentForm.email} onChange={(e) => setParentForm((p) => ({ ...p, email: e.target.value }))} />
+                  </label>
+                  <label>
+                    Initial password (optional)
+                    <input type="password" minLength={6} value={parentForm.password} onChange={(e) => setParentForm((p) => ({ ...p, password: e.target.value }))} placeholder="Leave blank to create a setup code" />
+                  </label>
+                  <label>
+                    Relationship
+                    <select value={parentForm.relationship_type} onChange={(e) => setParentForm((p) => ({ ...p, relationship_type: e.target.value }))}>
+                      <option value="parent">Parent</option>
+                      <option value="mother">Mother</option>
+                      <option value="father">Father</option>
+                      <option value="guardian">Guardian</option>
+                    </select>
+                  </label>
+                  <label>
+                    Preferred language
+                    <select value={parentForm.preferred_language} onChange={(e) => setParentForm((p) => ({ ...p, preferred_language: e.target.value }))}>
+                      <option value="te">తెలుగు (Telugu)</option>
+                      <option value="en">English</option>
+                      <option value="hi">हिंदी (Hindi)</option>
+                    </select>
+                  </label>
+                  <label>
+                    Contact method
+                    <select value={parentForm.contact_method} onChange={(e) => setParentForm((p) => ({ ...p, contact_method: e.target.value }))}>
+                      <option value="school_record">School records</option>
+                      <option value="in_app">UDAAN app</option>
+                      <option value="sms">SMS</option>
+                      <option value="whatsapp">WhatsApp</option>
+                    </select>
+                  </label>
+                </div>
+                <div className="row" style={{ gap: '8px', marginTop: '12px' }}>
+                  <button type="submit" className="pri" disabled={parentLinksLoading}>
+                    {parentLinksLoading ? 'Saving…' : '✓ Register & verify parent'}
+                  </button>
+                  <button type="button" className="sec" onClick={() => setShowParentForm(false)}>Cancel</button>
+                </div>
+              </form>
+            )}
+
+            {/* Parent Messages: full two-way history for this student */}
+            <div style={{ marginTop: '18px', paddingTop: '14px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+              <h4 style={{ margin: '0 0 6px', color: '#8a4bff' }}>
+                💬 Parent Messages
+                {selectedStudentDetail.unread_parent_messages > 0 && (
+                  <span className="tag warn" style={{ marginLeft: '8px' }}>
+                    {selectedStudentDetail.unread_parent_messages} unread
+                  </span>
+                )}
+              </h4>
+              <p className="mu" style={{ margin: '0 0 10px', fontSize: '0.82rem' }}>
+                Messages from this student's verified parent. Replies are delivered to the parent's UDAAN inbox.
+              </p>
+              <TeacherMessages
+                lang={lang}
+                t={t}
+                studentId={selectedStudentDetail.student_id}
+                embedded
+              />
             </div>
 
             {/* Concept Mastery Breakdown */}
-            <h4 style={{ marginTop: '16px', marginBottom: '8px', color: '#00f2fe' }}>Rational Numbers Concept Mastery:</h4>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
+            <h4 style={{ marginTop: '16px', marginBottom: '8px', color: '#00f2fe' }}>Rational Numbers Concept Mastery:</h4>            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
               {selectedStudentDetail.concepts.map((c) => (
                 <div key={c.concept_id} style={{ padding: '10px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
                   <div style={{ fontWeight: 700, fontSize: '0.84rem' }}>{c.title_en}</div>
@@ -510,6 +1106,174 @@ export default function TeacherDashboard({
             )}
           </div>
         </div>
+      )}
+
+      {/* VIEW: PARENT-STUDENT RELATIONSHIP VERIFICATION (PHASE 3) */}
+      {viewMode === 'parents' && (
+        <div className="card">
+          <div className="row spaced" style={{ marginBottom: 12, flexWrap: 'wrap', gap: '10px' }}>
+            <div>
+              <span className="tag purple">GUARDIAN LINKS</span>
+              <h3 style={{ margin: '4px 0' }}>Parent & Guardian Verification</h3>
+              <p className="mu" style={{ margin: 0, fontSize: '0.86rem', maxWidth: '680px' }}>
+                Approve only relationships you have confirmed in person or against school records. Parents see no
+                learning information until a link is verified. Revoking removes access immediately.
+              </p>
+            </div>
+            <button className="sec" onClick={loadParentLinks} disabled={parentLinksLoading}>
+              {parentLinksLoading ? 'Loading…' : '↻ Refresh'}
+            </button>
+          </div>
+
+          {parentNotice && (
+            <div role="status" style={{ marginBottom: '10px', padding: '9px 12px', borderRadius: '8px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid #10b981', color: '#a7f3d0', fontSize: '0.84rem' }}>
+              ✓ {parentNotice}
+            </div>
+          )}
+          {parentError && (
+            <div role="alert" style={{ marginBottom: '10px', padding: '9px 12px', borderRadius: '8px', background: 'rgba(244, 63, 94, 0.1)', border: '1px solid #f43f5e', color: '#fecdd3', fontSize: '0.84rem' }}>
+              ⚠️ {parentError}
+            </div>
+          )}
+
+          {reissuedCode && (
+            <div style={{ marginBottom: '12px', padding: '12px', borderRadius: '10px', background: 'rgba(0, 242, 254, 0.08)', border: '1px solid #00f2fe' }}>
+              <div className="mu" style={{ fontSize: '0.8rem' }}>New single-use invitation code (share privately):</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 900, letterSpacing: '0.12em', color: '#67e8f9', margin: '4px 0' }}>
+                {reissuedCode.invitation_code}
+              </div>
+              <div className="mu" style={{ fontSize: '0.76rem' }}>
+                Expires {new Date(reissuedCode.expires_at).toLocaleDateString()} · Shown only once
+              </div>
+            </div>
+          )}
+
+          {parentSetupCode && (
+            <div role="status" style={{ marginBottom: '12px', padding: '12px', borderRadius: '10px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid #10b981' }}>
+              <div className="mu" style={{ fontSize: '0.8rem' }}>
+                Single-use setup code for {parentSetupCode.parent_name} ({parentSetupCode.student_name}) — share privately:
+              </div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 900, letterSpacing: '0.12em', color: '#6ee7b7', margin: '4px 0' }}>
+                {parentSetupCode.setup_code}
+              </div>
+              <div className="mu" style={{ fontSize: '0.76rem' }}>
+                Shown only once · The parent uses it once to choose their own email and password. It expires automatically.
+              </div>
+            </div>
+          )}
+
+          {parentLinks.length === 0 ? (
+            <p className="mu" style={{ fontSize: '0.9rem' }}>
+              {parentLinksLoading ? 'Loading parent links…' : 'No parent links found for your assigned students.'}
+            </p>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Parent / Guardian</th>
+                    <th>Student</th>
+                    <th>Relationship</th>
+                    <th>Status</th>
+                    <th>Method</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {parentLinks.map((link) => {
+                    const statusClass = link.status === 'verified' ? 'good' : link.status === 'pending' ? 'warn' : 'danger';
+                    return (
+                      <tr key={link.id}>
+                        <td>
+                          <b>{link.parent_name}</b>
+                          <div className="mu" style={{ fontSize: '0.75rem' }}>{link.parent_email}</div>
+                          {link.parent_phone && <div className="mu" style={{ fontSize: '0.75rem' }}>{link.parent_phone}</div>}
+                          {link.parent_preferred_language && <span className="tag" style={{ fontSize: '0.68rem' }}>{link.parent_preferred_language}</span>}
+                        </td>
+                        <td>
+                          <b>{link.student_name}</b>
+                          <div className="mu" style={{ fontSize: '0.75rem' }}>{link.student_class}</div>
+                        </td>
+                        <td style={{ textTransform: 'capitalize' }}>{link.relationship_type}</td>
+                        <td>
+                          <span className={`tag ${statusClass}`} style={{ textTransform: 'capitalize' }}>{link.status}</span>
+                          {link.verified_at && (
+                            <div className="mu" style={{ fontSize: '0.72rem' }}>Verified {new Date(link.verified_at).toLocaleDateString()}</div>
+                          )}
+                        </td>
+                        <td style={{ fontSize: '0.78rem', color: '#cbd5e1' }}>{(link.verification_method || '').replace(/_/g, ' ')}</td>
+                        <td>
+                          <div className="row" style={{ gap: '6px', flexWrap: 'wrap' }}>
+                            {link.status === 'pending' && (
+                              <>
+                                <button
+                                  className="pri"
+                                  style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+                                  onClick={() => runLinkAction((id) => api.verifyParentLink(id), link, `Verified ${link.parent_name} for ${link.student_name}.`)}
+                                  disabled={parentLinksLoading}
+                                >
+                                  ✓ Verify
+                                </button>
+                                <button
+                                  className="sec"
+                                  style={{ padding: '4px 8px', fontSize: '0.75rem', color: '#fca5a5', borderColor: '#ef4444' }}
+                                  onClick={() => {
+                                    const notes = window.prompt('Reason for rejecting this request (optional):') || '';
+                                    if (window.confirm(`Reject ${link.parent_name}'s request for ${link.student_name}?`)) {
+                                      runLinkAction((id) => api.rejectParentLink(id, notes), link, 'Relationship request rejected.');
+                                    }
+                                  }}
+                                  disabled={parentLinksLoading}
+                                >
+                                  ✕ Reject
+                                </button>
+                              </>
+                            )}
+                            {link.status === 'verified' && (
+                              <button
+                                className="sec"
+                                style={{ padding: '4px 8px', fontSize: '0.75rem', color: '#fca5a5', borderColor: '#ef4444' }}
+                                onClick={() => {
+                                  const notes = window.prompt('Reason for revoking access (optional):') || '';
+                                  if (window.confirm(`Revoke ${link.parent_name}'s access to ${link.student_name}? This takes effect immediately.`)) {
+                                    runLinkAction((id) => api.revokeParentLink(id, notes), link, 'Access revoked. The parent can no longer see this student.');
+                                  }
+                                }}
+                                disabled={parentLinksLoading}
+                              >
+                                ⛔ Revoke
+                              </button>
+                            )}
+                            {link.status !== 'verified' && (
+                              <button
+                                className="sec"
+                                style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+                                onClick={() => handleReissueParentInvitation(link)}
+                                disabled={parentLinksLoading}
+                              >
+                                🔁 Reissue code
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* VIEW: PARENT-TEACHER MESSAGES (PHASE 4) */}
+      {viewMode === 'messages' && (
+        <TeacherMessages lang={lang} t={t} onUnreadChange={setMessagesUnread} />
+      )}
+
+      {/* VIEW: AI COURSE & ENGAGEMENT ORCHESTRATOR */}
+      {viewMode === 'ai' && (
+        <AiCourseCenter lang={lang} className={selectedClass} embedded />
       )}
 
       {/* VIEW 2: TEACHER ACTION CARDS */}

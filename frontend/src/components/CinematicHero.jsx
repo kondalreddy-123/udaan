@@ -15,19 +15,19 @@ export default function CinematicHero({
   const [currentSceneIdx, setCurrentSceneIdx] = useState(0);
   const [scrollProgress, setScrollProgress] = useState(0);
 
-  // 8 Canonical Scenes specified in Section 3 of Master Prompt
+  // Eight short scenes introduce the course, practice tools, progress, and teacher features.
   const scenes = [
     {
       id: 'scene-01',
       badge: 'SCENE 01 · THE ARRIVAL',
-      title: lang === 'te' ? 'మిమ్మల్ని అర్థం చేసుకునే అభ్యాసం.' : 'Learning That Understands You.',
+      title: lang === 'te' ? 'మిమ్మల్ని అర్థం చేసుకునే అభ్యాసం.' : 'A clearer way to learn Class 8 maths.',
       subtitle:
         lang === 'te'
           ? 'ప్రతి విద్యార్థి విభిన్నంగా నేర్చుకుంటారు. ఉడాన్ ప్రతి అభ్యాస ప్రయాణాన్ని వ్యక్తిగతీకరిస్తుంది.'
-          : 'Every student learns differently. UDAAN makes every learning journey personal.',
+          : 'Practice with visual lessons, short exercises, and help when you need it.',
       cta: lang === 'te' ? 'ఉడాన్ అన్వేషించండి' : 'Explore UDAAN',
       onCta: onStartLearning,
-      tag: 'NCERT CLASS 8'
+      tag: 'CLASS 8 MATH'
     },
     {
       id: 'scene-02',
@@ -36,34 +36,34 @@ export default function CinematicHero({
       subtitle:
         lang === 'te'
           ? 'భిన్నాలు, పూర్ణాంకాలు, క.సా.గు, అకరణీయ సంఖ్యలు, మరియు బీజగణితం అనే 5 గ్రహాలు.'
-          : '5 holographic learning planets: Fractions, Integers, LCM, Rational Numbers, and Algebra connected by glowing orbital pathways.',
+          : 'See how fractions, integers, LCM, rational numbers, and algebra fit together.',
       cta: lang === 'te' ? 'విశ్వాన్ని అన్వేషించండి' : 'Enter Learning Galaxy',
       onCta: onExploreUniverse,
-      tag: 'HOLOGRAPHIC 3D WORLDS'
+      tag: 'COURSE MAP'
     },
     {
       id: 'scene-03',
-      badge: 'SCENE 03 · MEET YOUR AI COMPANION',
-      title: lang === 'te' ? 'మీ వ్యక్తిగత AI సహచరుడు' : 'Your Personal Learning Companion',
+      badge: 'SCENE 03 · GET HELP AS YOU WORK',
+      title: lang === 'te' ? 'మీ వ్యక్తిగత AI సహచరుడు' : 'Need a hand?',
       subtitle:
         lang === 'te'
           ? 'స్వచ్ఛమైన గాజు గోళం మరియు కాంతి వలయాలతో రూపొందించిన స్నేహపూర్వక మార్గదర్శి.'
-          : 'A translucent glass sphere with cyan-violet energy rings that guides you step-by-step and helps you learn from mistakes.',
-      cta: lang === 'te' ? 'సహచరుడితో మాట్లాడండి' : 'Meet AI Companion',
+          : 'Get hints and step-by-step guidance when a problem feels difficult.',
+      cta: lang === 'te' ? 'సహచరుడితో మాట్లాడండి' : 'Go to practice',
       onCta: onStartLearning,
       tag: 'REAL-TIME GUIDANCE'
     },
     {
       id: 'scene-04',
-      badge: 'SCENE 04 · THE INTERACTIVE MATH LAB',
-      title: lang === 'te' ? 'స్పర్శ సంబంధిత మ్యాథ్ ల్యాబ్' : 'The Interactive Math Lab',
+      badge: 'SCENE 04 · THE MATH LAB',
+      title: lang === 'te' ? 'స్పర్శ సంబంధిత మ్యాథ్ ల్యాబ్' : 'See maths in action.',
       subtitle:
         lang === 'te'
           ? 'భిన్నాల భాగాలు, సంఖ్యా రేఖలు మరియు 3D గణిత నమూనాలతో కంటికి కనిపించేలా నేర్చుకోండి.'
-          : 'Touch, partition, and move fraction blocks and directional number lines in an interactive 3D laboratory.',
-      cta: lang === 'te' ? 'ల్యాబ్ తెరవండి' : 'Open 3D Math Lab',
+          : 'Use fraction models, number lines, and 3D tools to work through maths ideas.',
+      cta: lang === 'te' ? 'ల్యాబ్ తెరవండి' : 'Choose a topic',
       onCta: onExploreUniverse,
-      tag: 'TACTILE VISUALIZATIONS'
+      tag: 'INTERACTIVE PRACTICE'
     },
     {
       id: 'scene-05',
@@ -71,26 +71,26 @@ export default function CinematicHero({
       title:
         lang === 'te'
           ? 'ప్రతి తప్పు నేర్చుకోవడానికి ఒక కొత్త అవకాశం.'
-          : 'Every Mistake is a New Opportunity to Learn.',
+          : 'Understand where you got stuck.',
       subtitle:
         lang === 'te'
           ? 'తప్పును కేవలం తీర్పుగా చూడకుండా, అంతర్లీన భావనా లోపాన్ని గుర్తించి సరిదిద్దుతుంది.'
-          : 'A wrong answer is evidence, not proof. UDAAN discovers why you answered differently, tests hypotheses, and scaffolds recovery.',
-      cta: lang === 'te' ? 'డిటెక్టివ్ ప్రారంభించు' : 'Launch Learning Detective',
+          : 'Review the thinking behind an answer, then try a short question to strengthen the idea.',
+      cta: lang === 'te' ? 'డిటెక్టివ్ ప్రారంభించు' : 'Review an answer',
       onCta: onOpenDetective,
-      tag: 'SCIENTIFIC DIAGNOSIS'
+      tag: 'MISTAKE REVIEW'
     },
     {
       id: 'scene-06',
       badge: 'SCENE 06 · YOUR PERSONAL PROGRESS',
-      title: lang === 'te' ? 'ప్రతి రోజూ, కొంచెం మెరుగ్గా.' : 'Every Day, a Little Better.',
+      title: lang === 'te' ? 'ప్రతి రోజూ, కొంచెం మెరుగ్గా.' : 'See how your learning is going.',
       subtitle:
         lang === 'te'
           ? 'అభ్యాస పరంపర, సాధించిన మైలురాళ్ళు, భావన స్పటికాలు మరియు రోజువారీ లక్ష్యాలు.'
-          : 'Track your genuine mastery crystals, learning streaks, daily goals, and achievements without toxic competitive pressure.',
+          : 'Keep track of topics you have practised, your recent progress, and the goals you have set.',
       cta: lang === 'te' ? 'నా పురోగతిని చూడండి' : 'View My Learning',
       onCta: onStartLearning,
-      tag: 'EVIDENCE-BASED MASTERY'
+      tag: 'YOUR PROGRESS'
     },
     {
       id: 'scene-07',
@@ -98,26 +98,26 @@ export default function CinematicHero({
       title:
         lang === 'te'
           ? 'ప్రతి అభ్యాసకుడిని అర్థం చేసుకోవడంలో ఉపాధ్యాయులకు సహాయం.'
-          : 'Helping Teachers Understand Every Learner.',
+          : 'Give teachers a clearer picture.',
       subtitle:
         lang === 'te'
           ? 'తరగతి సమూహ విశ్లేషణలు, పునరావృత తప్పులు మరియు కార్యాచరణ సిఫార్సులు.'
-          : 'Cohort mastery gaps, common misconceptions, and 1-click explainable action cards with suggested remedial lesson plans.',
-      cta: lang === 'te' ? 'ఉపాధ్యాయ డ్యాష్‌బోర్డ్' : 'Teacher Command Center',
+          : 'Review class progress, spot common difficulties, and plan what to teach next.',
+      cta: lang === 'te' ? 'ఉపాధ్యాయ డ్యాష్‌బోర్డ్' : 'Explore the dashboard',
       onCta: onStartLearning,
-      tag: 'INSTRUCTOR INTELLIGENCE'
+      tag: 'TEACHER TOOLS'
     },
     {
       id: 'scene-08',
       badge: 'SCENE 08 · START YOUR LEARNING JOURNEY',
-      title: lang === 'te' ? 'మీ అభ్యాస ప్రయాణాన్ని ప్రారంభించండి' : 'Ready to Take Flight?',
+      title: lang === 'te' ? 'మీ అభ్యాస ప్రయాణాన్ని ప్రారంభించండి' : 'Ready to begin?',
       subtitle:
         lang === 'te'
           ? 'ఉడాన్ తో మీ విద్యా ప్రయాణాన్ని వ్యక్తిగతీకరించుకోండి.'
-          : 'Join Aarav and your intelligent AI companion in the NCERT Class 8 Mathematics adaptive universe.',
+          : 'Join Aarav as he works through the Class 8 maths curriculum.',
       cta: lang === 'te' ? 'ఉచితంగా ప్రారంభించండి' : 'Start Learning Now',
       onCta: onStartLearning,
-      tag: 'UDAAN v2.0 READY'
+      tag: 'NCERT CLASS 8'
     }
   ];
 
@@ -415,7 +415,7 @@ export default function CinematicHero({
       style={{
         position: 'relative',
         minHeight: '720vh',
-        background: '#07080a',
+        background: '#0b1016',
         color: '#f8fafc'
       }}
     >
@@ -461,7 +461,7 @@ export default function CinematicHero({
           }}
         />
 
-        {/* Floating Top-Right HUD: Scene Indicator & Camera Telemetry */}
+        {/* Floating scene indicator */}
         <div
           style={{
             position: 'absolute',
@@ -470,20 +470,20 @@ export default function CinematicHero({
             display: 'flex',
             alignItems: 'center',
             gap: '10px',
-            background: 'rgba(16, 17, 22, 0.85)',
+            background: 'rgba(16, 22, 28, 0.92)',
             padding: '8px 16px',
-            borderRadius: '99px',
+            borderRadius: '12px',
             backdropFilter: 'blur(16px)',
-            border: '1px solid rgba(0, 242, 254, 0.25)',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+            border: '1px solid rgba(210, 225, 235, 0.16)',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.32)',
             zIndex: 10
           }}
         >
-          <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#00f2fe', boxShadow: '0 0 8px #00f2fe' }}></span>
+          <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#75c6cf' }}></span>
           <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#f8fafc' }}>
-            CINEMATIC CAMERA · {scenes[currentSceneIdx].badge}
+            SCENE {currentSceneIdx + 1} OF 8 · {scenes[currentSceneIdx].badge.replace(/^SCENE \d+ · /, '')}
           </span>
-          <span className="tag purple">{Math.round(scrollProgress * 100)}%</span>
+          <span className="tag purple">{String(currentSceneIdx + 1).padStart(2, '0')} / 08</span>
         </div>
 
         {/* Floating Left HUD: 8-Scene Waypoint Navigator */}
@@ -506,6 +506,7 @@ export default function CinematicHero({
                 key={s.id}
                 onClick={() => scrollToScene(idx)}
                 title={s.badge}
+                aria-label={`Go to ${s.badge}`}
                 style={{
                   width: isActive ? '32px' : '10px',
                   height: '10px',
@@ -562,7 +563,7 @@ export default function CinematicHero({
             }}
           >
             <span style={{ fontSize: '0.78rem', color: '#00f2fe', letterSpacing: '1px', fontWeight: 700 }}>
-              SCROLL DOWN TO EXPLORE
+              SCROLL TO SEE HOW IT WORKS
             </span>
             <span style={{ fontSize: '1.2rem', color: '#00f2fe' }}>↓</span>
           </div>
@@ -586,12 +587,12 @@ export default function CinematicHero({
               <div
                 style={{
                   maxWidth: '680px',
-                  background: 'rgba(10, 12, 18, 0.82)',
-                  border: '1px solid rgba(0, 242, 254, 0.3)',
-                  borderRadius: '24px',
-                  padding: '36px 40px',
-                  backdropFilter: 'blur(20px)',
-                  boxShadow: '0 25px 60px rgba(0,0,0,0.85), 0 0 30px rgba(0, 242, 254, 0.12)',
+                  background: 'rgba(13, 19, 25, 0.91)',
+                  border: '1px solid rgba(210, 225, 235, 0.16)',
+                  borderRadius: '18px',
+                  padding: '34px 38px',
+                  backdropFilter: 'blur(14px)',
+                  boxShadow: '0 20px 48px rgba(0,0,0,0.48)',
                   pointerEvents: 'auto',
                   transform: currentSceneIdx === idx ? 'translateY(0)' : 'translateY(20px)',
                   opacity: currentSceneIdx === idx ? 1 : 0.65,
@@ -633,7 +634,7 @@ export default function CinematicHero({
                     onClick={scene.onCta}
                     style={{ padding: '12px 26px', fontSize: '1rem', borderRadius: '12px' }}
                   >
-                    🚀 {scene.cta}
+                    {scene.cta}
                   </button>
 
                   <button
@@ -641,7 +642,7 @@ export default function CinematicHero({
                     onClick={() => scrollToScene(Math.min(7, idx + 1))}
                     style={{ padding: '12px 20px', fontSize: '0.92rem', borderRadius: '12px' }}
                   >
-                    Next Scene ↓
+                    Next ↓
                   </button>
                 </div>
               </div>

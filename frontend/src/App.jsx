@@ -12,13 +12,81 @@ import ModelComparison from './components/ModelComparison';
 import StudentProgress from './components/StudentProgress';
 import TeacherInsights from './components/TeacherInsights';
 import WalkthroughTour from './components/WalkthroughTour';
+import AuthModal from './components/AuthModal';
+import ParentOnboarding from './components/ParentOnboarding';
+import AdminPortal from './components/AdminPortal';
+import PublicReportView from './components/PublicReportView';
 import { translations } from './i18n/translations';
+import { api, setToken } from './services/api';
 import { saveAttemptOffline, getOfflineAttempts, removeOfflineAttempt } from './services/idb';
 
 export default function App() {
   const [lang, setLang] = useState('en');
   const [activeTab, setActiveTab] = useState('hero');
   const [role, setRole] = useState('student');
+  const [currentUser, setCurrentUser] = useState(null);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [parentOnboardingOpen, setParentOnboardingOpen] = useState(false);
+
+  // Secure weekly-report links open a read-only public view without login.
+  const reportToken =
+    typeof window !== 'undefined'
+      ? new URLSearchParams(window.location.search).get('report_token')
+      : null;
+
+  // Restore authenticated session on initial mount
+  useEffect(() => {
+    api.getMe()
+      .then((user) => {
+        if (user) {
+          setCurrentUser(user);
+          setRole(user.role);
+          if (user.role === 'parent') {
+            setActiveTab('parent');
+            api.getParentMe()
+              .then((profile) => {
+                if (profile?.preferred_language) setLang(profile.preferred_language);
+              })
+              .catch(() => {});
+          }
+        }
+      })
+      .catch(() => {
+        // Unauthenticated or revoked token
+        setCurrentUser(null);
+      });
+  }, []);
+
+  const handleAuthSuccess = (user, token) => {
+    setCurrentUser(user);
+    setRole(user.role);
+    setParentOnboardingOpen(false);
+    if (user.role === 'admin') setActiveTab('admin');
+    else if (user.role === 'teacher') setActiveTab('teacher');
+    else if (user.role === 'author') setActiveTab('content');
+    else if (user.role === 'parent') {
+      setActiveTab('parent');
+      // Language lives in ParentProfile, not on the auth user object.
+      api.getParentMe()
+        .then((profile) => {
+          if (profile?.preferred_language) setLang(profile.preferred_language);
+        })
+        .catch(() => {});
+    } else setActiveTab('student');
+  };
+
+  const handleLogout = async () => {
+    try {
+      await api.logout();
+    } catch (e) {
+      // Ignore network errors during logout
+    }
+    setToken(null);
+    setCurrentUser(null);
+    setRole('student');
+    setActiveTab('hero');
+  };
+
   // Topic currently loaded in the 3D Math Lab (set from the Learning Universe
   // or from the lab's own topic chooser).
   const [labTopic, setLabTopic] = useState('c5');
@@ -366,6 +434,10 @@ export default function App() {
     }
   };
 
+  if (reportToken) {
+    return <PublicReportView token={reportToken} lang={lang} t={t} />;
+  }
+
   return (
     <div>
       <Header
@@ -373,8 +445,10 @@ export default function App() {
         setLang={setLang}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        role={role}
-        setRole={setRole}
+        currentUser={currentUser}
+        onOpenAuth={() => setAuthModalOpen(true)}
+        onOpenParentOnboarding={() => setParentOnboardingOpen(true)}
+        onLogout={handleLogout}
         online={online}
         setOnline={setOnline}
         lowBandwidth={lowBandwidth}
@@ -382,7 +456,7 @@ export default function App() {
         t={t}
       />
 
-      <main role="main">
+      <main role="main" className={activeTab === 'hero' ? 'main-immersive' : undefined}>
         {activeTab === 'hero' && (
           <CinematicHero
             lang={lang}
@@ -392,6 +466,10 @@ export default function App() {
             onExploreUniverse={() => setActiveTab('galaxy')}
             onOpenDetective={() => setActiveTab('detective')}
           />
+        )}
+
+        {activeTab === 'admin' && (
+          <AdminPortal lang={lang} t={t} />
         )}
 
         {activeTab === 'student' && (
@@ -407,11 +485,21 @@ export default function App() {
             lang={lang}
             t={t}
             lowBandwidth={lowBandwidth}
+            currentUser={currentUser}
             onAnswerPractice={(cid, ok) => handleRecordAttempt(cid, ok, false)}
             onLaunchDetective={() => setActiveTab('detective')}
             onOpenTour={() => setShowTour(true)}
             onSyncNow={handleSyncQueue}
             onNavigateTab={setActiveTab}
+          />
+        )}
+
+        {activeTab === 'parent' && (
+          <ParentOnboarding
+            mode="profile"
+            lang={lang}
+            setLang={setLang}
+            t={t}
           />
         )}
 
@@ -458,6 +546,8 @@ export default function App() {
             onCardStatus={handleCardStatus}
             onCardEdit={handleCardEdit}
             onOpenTour={() => setShowTour(true)}
+            lang={lang}
+            t={t}
           />
         )}
 
@@ -500,6 +590,28 @@ export default function App() {
           )
         )}
       </main>
+
+      <AuthModal
+        isOpen={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+        onAuthSuccess={handleAuthSuccess}
+        onOpenParentOnboarding={() => {
+          setAuthModalOpen(false);
+          setParentOnboardingOpen(true);
+        }}
+        lang={lang}
+        t={t}
+      />
+
+      <ParentOnboarding
+        isOpen={parentOnboardingOpen}
+        mode="onboarding"
+        onClose={() => setParentOnboardingOpen(false)}
+        onAuthSuccess={handleAuthSuccess}
+        lang={lang}
+        setLang={setLang}
+        t={t}
+      />
 
       {showTour && <WalkthroughTour onClose={() => setShowTour(false)} />}
     </div>

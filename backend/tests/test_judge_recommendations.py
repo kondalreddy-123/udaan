@@ -4,6 +4,7 @@ from app.engine.adaptive_rules import AdaptiveRuleEngine
 from app.engine.comparison import evaluate_models
 from fastapi.testclient import TestClient
 from app.main import app
+from app.auth import create_access_token
 
 client = TestClient(app)
 
@@ -81,12 +82,15 @@ def test_bkt_versus_rule_evaluation():
 
 def test_question_delete_and_ai_explanation_endpoints():
     """Judge Recommendation 6: Question maintenance workflows."""
+    author_token = create_access_token({"sub": "author@udaan.edu", "role": "author", "id": 16})
+    headers = {"Authorization": f"Bearer {author_token}"}
+
     # Test AI Explanation generator
     exp_res = client.post("/api/questions/generate-explanation", json={
         "tag": "num_den_separate",
         "stem": "(-3/4) + (1/2)",
         "option_text": "-2/6"
-    })
+    }, headers=headers)
     assert exp_res.status_code == 200
     exp_data = exp_res.json()
     assert exp_data["ai_generated"] is True

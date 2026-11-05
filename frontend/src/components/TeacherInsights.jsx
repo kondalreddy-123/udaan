@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { api } from '../services/api';
+import TeacherMessages from './TeacherMessages';
 
 const FALLBACK_SUMMARY = {
   total_students: 15,
@@ -562,6 +563,22 @@ export default function TeacherInsights({ cfg, lang, t, onNavigateTab }) {
                 </table>
               </>
             )}
+
+                        {/* Parent Messages */}
+            <div style={{ marginTop: '18px', paddingTop: '14px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+              <h4 style={{ margin: '0 0 6px', color: '#8a4bff' }}>
+                💬 {L('Parent Messages', 'తల్లిదండ్రుల సందేశాలు')}
+              </h4>
+              <p className="mu" style={{ margin: '0 0 10px', fontSize: '0.82rem' }}>
+                {L("Messages from this student's verified parent. Replies are delivered to the parent's UDAAN inbox.", "ఈ విద్యార్థి ధృవీకరించబడిన తల్లిదండ్రుల నుండి సందేశాలు.")}
+              </p>
+              <TeacherMessages
+                lang={lang}
+                t={t}
+                studentId={selectedStudent.id}
+                embedded
+              />
+            </div>
 
             {!loadingDetail && !studentDetail && (
               <p className="mu" style={{ marginTop: 14, fontSize: '0.84rem', lineHeight: 1.5 }}>

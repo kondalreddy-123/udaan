@@ -9,7 +9,7 @@ from app.schemas import (
     QuestionResponse, QuestionCreate, QuestionUpdate, OptionSchema,
     CorrectionReportCreate, CorrectionReportResponse
 )
-from app.auth import get_current_user
+from app.auth import get_current_user, require_role
 
 router = APIRouter(prefix="/questions", tags=["Questions & Content Authoring"])
 
@@ -105,7 +105,7 @@ def get_question(question_id: str, db: Session = Depends(get_db)):
     return serialize_question(q)
 
 @router.post("", response_model=QuestionResponse)
-def create_question(item: QuestionCreate, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+def create_question(item: QuestionCreate, db: Session = Depends(get_db), user: User = Depends(require_role(["author", "teacher", "admin"]))):
     existing = db.query(Question).filter(Question.id == item.id).first()
     if existing:
         raise HTTPException(status_code=400, detail=f"Question with ID '{item.id}' already exists")
@@ -147,7 +147,7 @@ def create_question(item: QuestionCreate, db: Session = Depends(get_db), user: U
     return serialize_question(q)
 
 @router.put("/{question_id}", response_model=QuestionResponse)
-def update_question(question_id: str, updates: QuestionUpdate, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+def update_question(question_id: str, updates: QuestionUpdate, db: Session = Depends(get_db), user: User = Depends(require_role(["author", "teacher", "admin"]))):
     q = db.query(Question).filter(Question.id == question_id).first()
     if not q:
         raise HTTPException(status_code=404, detail="Question not found")
@@ -222,7 +222,7 @@ def update_question(question_id: str, updates: QuestionUpdate, db: Session = Dep
     return serialize_question(q)
 
 @router.post("/{question_id}/duplicate", response_model=QuestionResponse)
-def duplicate_question(question_id: str, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+def duplicate_question(question_id: str, db: Session = Depends(get_db), user: User = Depends(require_role(["author", "teacher", "admin"]))):
     src = db.query(Question).filter(Question.id == question_id).first()
     if not src:
         raise HTTPException(status_code=404, detail="Source question not found")
@@ -271,7 +271,7 @@ def report_correction(question_id: str, report: CorrectionReportCreate, db: Sess
     return rep
 
 @router.delete("/{question_id}")
-def delete_question(question_id: str, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+def delete_question(question_id: str, db: Session = Depends(get_db), user: User = Depends(require_role(["author", "admin"]))):
     """Deletes a question along with its version history and reports."""
     q = db.query(Question).filter(Question.id == question_id).first()
     if not q:
@@ -283,7 +283,7 @@ def delete_question(question_id: str, db: Session = Depends(get_db), user: User 
 
 
 @router.post("/generate-explanation")
-def generate_ai_explanation(payload: dict, user: User = Depends(get_current_user)):
+def generate_ai_explanation(payload: dict, user: User = Depends(require_role(["author", "teacher", "admin"]))):
     """
     AI Content Assistant (Judge Recommendation 6):
     Generates bilingual misconception explanations for teachers to review and edit before publication.

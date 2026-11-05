@@ -41,7 +41,7 @@ def list_detective_cases():
 
 @router.post("/start")
 def start_detective(case_id: str = "case_rational_add", user: User = Depends(get_current_user)):
-    user_id = user.id if user else 1
+    user_id = user.id
     sess = DetectiveSession(case_id)
     sessions[user_id] = sess
     
@@ -76,7 +76,7 @@ def submit_primary(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user)
 ):
-    user_id = user.id if user else 1
+    user_id = user.id
     sess = get_or_create_session(user_id)
     result = sess.submit_primary(data.option_index)
 
@@ -158,7 +158,7 @@ def submit_followup(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user)
 ):
-    user_id = user.id if user else 1
+    user_id = user.id
     sess = get_or_create_session(user_id)
     result = sess.submit_followup(data.is_correct)
 
@@ -209,9 +209,9 @@ def submit_reassessment(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user)
 ):
-    user_id = user.id if user else 1
+    user_id = user.id
     sess = get_or_create_session(user_id)
-    student_name = user.full_name if user else "Learner (Demo)"
+    student_name = user.full_name
     result = sess.submit_reassessment(data.option_index, student_name=student_name)
 
     reassess_q = sess.case["reassessment"]
@@ -312,7 +312,7 @@ def get_diagnostic_records(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user)
 ):
-    user_id = user.id if user else 1
+    user_id = user.id
     q = db.query(DiagnosticRecord).filter(DiagnosticRecord.user_id == user_id)
     if concept_id:
         q = q.filter(DiagnosticRecord.concept_id == concept_id)

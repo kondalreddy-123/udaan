@@ -1,12 +1,16 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 import datetime
+import logging
 from app.database import get_db
 from app.models import Attempt, ConceptMastery, TeacherActionCard, TeacherConfig, User, Concept
 from app.schemas import AttemptSyncBatch, AttemptSyncResponse
 from app.auth import get_current_user
 from app.engine.bkt import bkt_update, classify_mastery
 from app.engine.adaptive_rules import AdaptiveRuleEngine
+from app.services import parent_alerts
+
+logger = logging.getLogger("udaan.attempts")
 
 router = APIRouter(prefix="/attempts", tags=["Attempts & Sync"])
 
@@ -16,8 +20,8 @@ def sync_attempts(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user)
 ):
-    user_id = user.id if user else 1
-    student_name = user.full_name if user else "Learner (Demo)"
+    user_id = user.id
+    student_name = user.full_name
 
     # Get active teacher thresholds
     cfg = db.query(TeacherConfig).first()
@@ -122,6 +126,17 @@ def sync_attempts(
         synced_count += 1
 
     db.commit()
+
+    # Phase 4: evaluate evidence-based parent alerts. This must never break
+    # mastery tracking or the adaptive engine, so failures are isolated.
+    if user.role == "student":
+        try:
+            created_alerts = parent_alerts.evaluate_student_alerts(db, user)
+            if created_alerts:
+                db.commit()
+        except Exception:  # pragma: no cover - defensive isolation
+            db.rollback()
+            logger.exception("Parent alert evaluation failed after attempt sync")
 
     # Collect current user masteries
     current_cms = db.query(ConceptMastery).filter(ConceptMastery.user_id == user_id).all()

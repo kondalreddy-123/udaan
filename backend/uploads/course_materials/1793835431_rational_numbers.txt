@@ -1,0 +1,8 @@
+# Chapter 1: Rational Numbers Fundamentals
+A rational number is any number that can be expressed as p/q where p and q are integers and q is not zero.
+Recall prerequisite: Equivalent fractions and finding LCM of denominators.
+
+## Section 1.1: Adding Unlike Fractions
+Example 1: To add 1/3 and 1/4, first find LCM(3, 4) = 12.
+Convert 1/3 to 4/12 and 1/4 to 3/12. Then 4/12 + 3/12 = 7/12.
+Try this practice exercise: Calculate 2/5 + 1/10.
