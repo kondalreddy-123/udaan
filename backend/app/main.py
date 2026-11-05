@@ -36,7 +36,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
   allow_origins=[
-        "https://udaan-git-master-pro-bab6.vercel.app/",
+        "https://udaan-plum.vercel.app",
         "https://udaan-git-master-pro-bab6.vercel.app",
         "http://localhost:5173",
     ],
